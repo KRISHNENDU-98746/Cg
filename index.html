@@ -60,7 +60,7 @@
       border-radius: 10px;
     }
 
-    /* 🔹 Product Detail Overlay */
+    /* Product Detail */
     #productDetail {
       position: fixed;
       top: 0;
@@ -76,10 +76,6 @@
 
     #productDetail.open {
       display: flex;
-    }
-
-    .detail-header {
-      position: relative;
     }
 
     .detail-header img {
@@ -127,7 +123,7 @@
       margin-top: 10px;
     }
 
-    /* 🔹 Reviews Section */
+    /* Reviews */
     .reviews {
       margin-top: 30px;
       padding: 15px;
@@ -159,6 +155,23 @@
       width: 100%;
     }
 
+    .stars {
+      display: flex;
+      gap: 5px;
+      font-size: 24px;
+      cursor: pointer;
+      margin: 5px 0;
+    }
+
+    .star {
+      color: #ccc;
+      transition: color 0.2s;
+    }
+
+    .star.active {
+      color: gold;
+    }
+
     .review-form button {
       background: #4CAF50;
       color: white;
@@ -183,7 +196,7 @@
     <p>Loading products...</p>
   </div>
 
-  <!-- 🔹 Product Detail Page -->
+  <!-- Product Detail Page -->
   <div id="productDetail">
     <div class="detail-header">
       <button class="back-btn">← Back</button>
@@ -203,7 +216,16 @@
         <div class="review-form">
           <h4>Write a review</h4>
           <input type="text" id="reviewName" placeholder="Your name">
-          <input type="number" id="reviewRating" min="1" max="5" placeholder="Rating (1-5)">
+          
+          <!-- ⭐ Clickable Star Rating -->
+          <div class="stars" id="starRating">
+            <span class="star" data-value="1">★</span>
+            <span class="star" data-value="2">★</span>
+            <span class="star" data-value="3">★</span>
+            <span class="star" data-value="4">★</span>
+            <span class="star" data-value="5">★</span>
+          </div>
+
           <textarea id="reviewText" rows="3" placeholder="Your review..."></textarea>
           <button id="submitReview">Submit Review</button>
         </div>
@@ -238,12 +260,29 @@
     const detailDescription = document.getElementById("detailDescription");
     const reviewsContainer = document.getElementById("reviewsContainer");
     const reviewName = document.getElementById("reviewName");
-    const reviewRating = document.getElementById("reviewRating");
     const reviewText = document.getElementById("reviewText");
     const submitReview = document.getElementById("submitReview");
+    const starContainer = document.getElementById("starRating");
+    const stars = document.querySelectorAll(".star");
 
     let allProducts = [];
     let currentProductId = null;
+    let selectedRating = 0;
+
+    // ⭐ Handle star click
+    stars.forEach(star => {
+      star.addEventListener("click", () => {
+        selectedRating = parseInt(star.dataset.value);
+        updateStarUI();
+      });
+    });
+
+    function updateStarUI() {
+      stars.forEach(star => {
+        const val = parseInt(star.dataset.value);
+        star.classList.toggle("active", val <= selectedRating);
+      });
+    }
 
     async function loadProducts() {
       const snapshot = await getDocs(collection(db, "products"));
@@ -285,7 +324,7 @@
       detailPage.classList.remove("open");
     });
 
-    // 🔹 Load reviews from Firestore (realtime)
+    // Load reviews in realtime
     function loadReviews(productId) {
       const reviewsRef = collection(db, "products", productId, "reviews");
       const q = query(reviewsRef, orderBy("timestamp", "desc"));
@@ -297,9 +336,10 @@
         }
         reviewsContainer.innerHTML = snapshot.docs.map(doc => {
           const r = doc.data();
+          const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
           return `
             <div class="review">
-              <strong>${r.name}</strong> ⭐${r.rating}<br>
+              <strong>${r.name}</strong> <span style="color:gold">${stars}</span><br>
               <p>${r.text}</p>
             </div>
           `;
@@ -307,27 +347,27 @@
       });
     }
 
-    // 🔹 Submit new review
+    // Submit review
     submitReview.addEventListener("click", async () => {
       const name = reviewName.value.trim();
-      const rating = parseInt(reviewRating.value);
       const text = reviewText.value.trim();
-      if (!name || !rating || !text) {
-        alert("Please fill out all fields.");
+      if (!name || !text || selectedRating === 0) {
+        alert("Please fill in your name, rating and review.");
         return;
       }
 
       const reviewRef = collection(db, "products", currentProductId, "reviews");
       await addDoc(reviewRef, {
         name,
-        rating,
+        rating: selectedRating,
         text,
         timestamp: new Date()
       });
 
       reviewName.value = "";
-      reviewRating.value = "";
       reviewText.value = "";
+      selectedRating = 0;
+      updateStarUI();
     });
 
     searchBar.addEventListener("input", () => {
@@ -338,6 +378,5 @@
 
     loadProducts();
   </script>
-
 </body>
 </html>
