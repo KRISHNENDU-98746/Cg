@@ -2,14 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Firestore Store</title>
+  <title>Firestore Store with Login</title>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
       background: #f6f7fb;
       margin: 0;
       padding: 0;
-      overflow-x: hidden;
+    }
+
+    /* Login Page */
+    #loginPage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: white;
+    }
+
+    #loginPage h2 {
+      font-size: 26px;
+      margin-bottom: 20px;
+    }
+
+    .google-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #4285F4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .google-btn:hover {
+      background: #357ae8;
+    }
+
+    /* Hidden until login */
+    #mainContent {
+      display: none;
     }
 
     nav {
@@ -60,7 +97,7 @@
       border-radius: 10px;
     }
 
-    /* Product Detail */
+    /* Product Detail Page */
     #productDetail {
       position: fixed;
       top: 0;
@@ -123,7 +160,7 @@
       margin-top: 10px;
     }
 
-    /* Reviews */
+    /* Review Section */
     .reviews {
       margin-top: 30px;
       padding: 15px;
@@ -146,21 +183,11 @@
       gap: 8px;
     }
 
-    .review-form input,
-    .review-form textarea {
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-family: inherit;
-      width: 100%;
-    }
-
     .stars {
       display: flex;
       gap: 5px;
       font-size: 24px;
       cursor: pointer;
-      margin: 5px 0;
     }
 
     .star {
@@ -180,54 +207,61 @@
       border-radius: 8px;
       cursor: pointer;
     }
+
   </style>
 </head>
 <body>
 
-  <nav>
-    <h2>Firestore Store</h2>
-    <div class="nav-center">
-      <input type="text" id="searchBar" placeholder="Search products...">
-    </div>
-    <div>🛒</div>
-  </nav>
-
-  <div id="product-grid">
-    <p>Loading products...</p>
+  <!-- LOGIN PAGE -->
+  <div id="loginPage">
+    <h2>Welcome to Firestore Store</h2>
+    <button class="google-btn" id="googleLogin">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+      Sign in with Google
+    </button>
   </div>
 
-  <!-- Product Detail Page -->
-  <div id="productDetail">
-    <div class="detail-header">
-      <button class="back-btn">← Back</button>
-      <img id="detailImage" src="">
-    </div>
-    <div class="detail-body">
-      <div class="product-name" id="detailName"></div>
-      <div class="product-price" id="detailPrice"></div>
-      <p id="detailDescription"></p>
+  <!-- MAIN CONTENT -->
+  <div id="mainContent">
+    <nav>
+      <h2>Firestore Store</h2>
+      <div class="nav-center">
+        <input type="text" id="searchBar" placeholder="Search products...">
+      </div>
+      <div id="userInfo"></div>
+    </nav>
 
-      <button class="add-to-bag">Add to Bag</button>
+    <div id="product-grid"><p>Loading products...</p></div>
 
-      <div class="reviews">
-        <h3>Customer Reviews</h3>
-        <div id="reviewsContainer"></div>
+    <div id="productDetail">
+      <div class="detail-header">
+        <button class="back-btn">← Back</button>
+        <img id="detailImage" src="">
+      </div>
+      <div class="detail-body">
+        <div class="product-name" id="detailName"></div>
+        <div class="product-price" id="detailPrice"></div>
+        <p id="detailDescription"></p>
 
-        <div class="review-form">
-          <h4>Write a review</h4>
-          <input type="text" id="reviewName" placeholder="Your name">
-          
-          <!-- ⭐ Clickable Star Rating -->
-          <div class="stars" id="starRating">
-            <span class="star" data-value="1">★</span>
-            <span class="star" data-value="2">★</span>
-            <span class="star" data-value="3">★</span>
-            <span class="star" data-value="4">★</span>
-            <span class="star" data-value="5">★</span>
+        <button class="add-to-bag">Add to Bag</button>
+
+        <div class="reviews">
+          <h3>Customer Reviews</h3>
+          <div id="reviewsContainer"></div>
+
+          <div class="review-form">
+            <h4>Write a review</h4>
+            <div class="stars" id="starRating">
+              <span class="star" data-value="1">★</span>
+              <span class="star" data-value="2">★</span>
+              <span class="star" data-value="3">★</span>
+              <span class="star" data-value="4">★</span>
+              <span class="star" data-value="5">★</span>
+            </div>
+
+            <textarea id="reviewText" rows="3" placeholder="Your review..."></textarea>
+            <button id="submitReview">Submit Review</button>
           </div>
-
-          <textarea id="reviewText" rows="3" placeholder="Your review..."></textarea>
-          <button id="submitReview">Submit Review</button>
         </div>
       </div>
     </div>
@@ -235,9 +269,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { 
-      getFirestore, collection, getDocs, addDoc, doc, query, orderBy, onSnapshot 
-    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
@@ -249,8 +282,14 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
+    const loginPage = document.getElementById("loginPage");
+    const mainContent = document.getElementById("mainContent");
+    const googleLogin = document.getElementById("googleLogin");
+    const userInfo = document.getElementById("userInfo");
     const productGrid = document.getElementById("product-grid");
     const searchBar = document.getElementById("searchBar");
     const detailPage = document.getElementById("productDetail");
@@ -259,17 +298,16 @@
     const detailPrice = document.getElementById("detailPrice");
     const detailDescription = document.getElementById("detailDescription");
     const reviewsContainer = document.getElementById("reviewsContainer");
-    const reviewName = document.getElementById("reviewName");
     const reviewText = document.getElementById("reviewText");
     const submitReview = document.getElementById("submitReview");
-    const starContainer = document.getElementById("starRating");
     const stars = document.querySelectorAll(".star");
 
     let allProducts = [];
     let currentProductId = null;
     let selectedRating = 0;
+    let currentUser = null;
 
-    // ⭐ Handle star click
+    // Handle star click
     stars.forEach(star => {
       star.addEventListener("click", () => {
         selectedRating = parseInt(star.dataset.value);
@@ -283,6 +321,29 @@
         star.classList.toggle("active", val <= selectedRating);
       });
     }
+
+    // Login with Google
+    googleLogin.addEventListener("click", async () => {
+      await signInWithPopup(auth, provider);
+    });
+
+    // Auth state change
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        loginPage.style.display = "none";
+        mainContent.style.display = "block";
+        userInfo.innerHTML = `${user.displayName} <button onclick="logout()">Logout</button>`;
+        loadProducts();
+      } else {
+        loginPage.style.display = "flex";
+        mainContent.style.display = "none";
+      }
+    });
+
+    window.logout = async () => {
+      await signOut(auth);
+    };
 
     async function loadProducts() {
       const snapshot = await getDocs(collection(db, "products"));
@@ -324,7 +385,7 @@
       detailPage.classList.remove("open");
     });
 
-    // Load reviews in realtime
+    // Load reviews
     function loadReviews(productId) {
       const reviewsRef = collection(db, "products", productId, "reviews");
       const q = query(reviewsRef, orderBy("timestamp", "desc"));
@@ -349,22 +410,25 @@
 
     // Submit review
     submitReview.addEventListener("click", async () => {
-      const name = reviewName.value.trim();
+      if (!currentUser) {
+        alert("Please log in to write a review.");
+        return;
+      }
+
       const text = reviewText.value.trim();
-      if (!name || !text || selectedRating === 0) {
-        alert("Please fill in your name, rating and review.");
+      if (!text || selectedRating === 0) {
+        alert("Please select a rating and write a review.");
         return;
       }
 
       const reviewRef = collection(db, "products", currentProductId, "reviews");
       await addDoc(reviewRef, {
-        name,
+        name: currentUser.displayName,
         rating: selectedRating,
         text,
         timestamp: new Date()
       });
 
-      reviewName.value = "";
       reviewText.value = "";
       selectedRating = 0;
       updateStarUI();
@@ -376,7 +440,6 @@
       displayProducts(filtered);
     });
 
-    loadProducts();
   </script>
 </body>
 </html>
