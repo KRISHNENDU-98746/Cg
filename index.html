@@ -23,7 +23,6 @@
     }
     .btn:hover { background: #45a049; }
     
-    /* Product Grid */
     #product-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -36,18 +35,24 @@
     .product {
       background: white;
       padding: 15px;
-      border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-radius: 10px; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
     img { width: 100%; border-radius: 8px; }
 
-    .cart { background: #fff; margin: 20px auto; padding: 20px; border-radius: 10px; max-width: 800px; }
+    .cart { 
+      background: #fff; 
+      margin: 20px auto; 
+      padding: 20px; 
+      border-radius: 10px; 
+      max-width: 800px; 
+    }
     
     input, textarea {
       width: 90%; padding: 10px; margin: 8px 0;
       border: 1px solid #ccc; border-radius: 6px;
     }
     
-    /* Notification */
     #notification {
         position: fixed;
         bottom: 20px;
@@ -72,7 +77,6 @@
   </div>
 
   <div id="store" style="display:none;">
-    
     <h3>Products</h3>
     <div id="product-grid">
         <!-- Products will be loaded from Firestore -->
@@ -87,24 +91,28 @@
     </div>
   </div>
   
-  <!-- Notification Element -->
   <div id="notification"></div>
 
   <script type="module">
     // === Import Firebase SDKs ===
-    // এখানে আপনার Firebase App, Firestore, Auth এবং Analytics লাইব্রেরিগুলো ইম্পোর্ট করা হলো।
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js"; // Added for Analytics
+    import { 
+      getFirestore, doc, setDoc, getDoc, onSnapshot, 
+      collection, addDoc, getDocs 
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { 
+      getAuth, GoogleAuthProvider, signInWithPopup, 
+      signOut, onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
 
-    // === Firebase Configuration (Updated with provided details) ===
+    // === Firebase Config ===
     const firebaseConfig = {
       apiKey: "AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
       authDomain: "thelong-6274a.firebaseapp.com",
       databaseURL: "https://thelong-6274a-default-rtdb.firebaseio.com",
       projectId: "thelong-6274a",
-      storageBucket: "thelong-6274a.firebasestorage.app",
+      storageBucket: "thelong-6274a.appspot.com",   // ✅ fixed domain
       messagingSenderId: "729094241594",
       appId: "1:729094241594:web:17b32ea302bb45814fa403",
       measurementId: "G-DPSPS3MDBF"
@@ -115,14 +123,7 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
-    const analytics = getAnalytics(app); // Initialized Analytics
-    
-    // === ADDED: Custom OAuth Client ID Parameter ===
-    // এটি Google সাইন-ইন রিকোয়েস্টে নির্দিষ্ট OAuth ক্লায়েন্ট আইডি পাস করার জন্য ব্যবহার করা হয়।
-    provider.setCustomParameters({
-      'client_id': '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' 
-    });
-    // ===============================================
+    const analytics = getAnalytics(app);
 
     // === UI Elements ===
     const googleLogin = document.getElementById('googleLogin');
@@ -137,50 +138,37 @@
     const notification = document.getElementById('notification');
 
     let currentUser = null;
-    let userCartRef = null; // কার্ট রেফারেন্স
-    let cartUnsubscribe = null; // onSnapshot listener বন্ধ করার জন্য
+    let userCartRef = null;
+    let cartUnsubscribe = null;
 
-    // === Custom Notification Function (alert-এর পরিবর্তে) ===
+    // === Notification (Custom Toast) ===
     function showNotification(message) {
         notification.textContent = message;
         notification.style.display = 'block';
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 3000); // ৩ সেকেন্ড পর মেসেজটি হাইড হয়ে যাবে
+        setTimeout(() => { notification.style.display = 'none'; }, 3000);
     }
 
-    // === Auth State Observer (পেইজ লোড হলেই রান হবে) ===
+    // === Auth State ===
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // User is logged in
             currentUser = user;
-            userInfo.innerHTML = `Welcome, ${currentUser.displayName} <br> <button class="btn" id="logoutBtn">Logout</button>`;
+            userInfo.innerHTML = `Welcome, ${currentUser.displayName} <br> 
+              <button class="btn" id="logoutBtn">Logout</button>`;
             googleLogin.style.display = 'none';
             store.style.display = 'block';
 
-            // Logout button logic
-            document.getElementById('logoutBtn').onclick = async () => {
-                await signOut(auth);
-                // location.reload(); // এটি state change-এর মাধ্যমে অটোমেটিক হবে
-            };
+            document.getElementById('logoutBtn').onclick = async () => await signOut(auth);
             
-            // ইউজার লগইন করলে তার কার্ট লোড করি
             await setupCartListener(user.uid);
-            // প্রোডাক্ট লোড করি
             await fetchProducts();
 
         } else {
-            // User is logged out
             currentUser = null;
             userInfo.innerHTML = ``;
             googleLogin.style.display = 'block';
             store.style.display = 'none';
             cartDiv.style.display = 'none';
-
-            // Unsubscribe from cart updates
-            if (cartUnsubscribe) {
-                cartUnsubscribe();
-            }
+            if (cartUnsubscribe) cartUnsubscribe();
         }
     });
 
@@ -188,18 +176,18 @@
     googleLogin.onclick = async () => {
       try {
         await signInWithPopup(auth, provider);
-        // onAuthStateChanged বাকি কাজ হ্যান্ডেল করবে
       } catch (error) {
+        console.error(error);
         showNotification(error.message);
       }
     };
     
-    // === 1. Fetch Products from Firestore ===
+    // === Fetch Products ===
     async function fetchProducts() {
         productGrid.innerHTML = "Loading products...";
         try {
             const querySnapshot = await getDocs(collection(db, "products"));
-            productGrid.innerHTML = ""; // Clear loading
+            productGrid.innerHTML = "";
             
             if (querySnapshot.empty) {
                 productGrid.innerHTML = "<p>No products found.</p>";
@@ -209,8 +197,6 @@
             querySnapshot.forEach((doc) => {
                 const product = doc.data();
                 const productId = doc.id;
-                
-                // প্রতিটি প্রোডাক্টের জন্য HTML তৈরি
                 productGrid.innerHTML += `
                     <div class="product">
                       <img src="${product.imageUrl || 'https://via.placeholder.com/300'}" alt="${product.name}">
@@ -221,7 +207,6 @@
                 `;
             });
             
-            // "Add to Cart" বাটনগুলোতে ইভেন্ট লিসেনার যোগ করা
             document.querySelectorAll('.product .btn').forEach(button => {
                 button.onclick = (e) => {
                     const { id, name, price } = e.target.dataset;
@@ -235,15 +220,12 @@
         }
     }
     
-    // === 2. Setup Cart Listener (Real-time) ===
+    // === Setup Real-Time Cart Listener ===
     async function setupCartListener(userId) {
-        // 'users' কালেকশনের ভেতরে 'userId' ডকুমেন্টে 'cart' নামে একটি ডকুমেন্ট তৈরি করছি
         userCartRef = doc(db, "users", userId, "cart", "current");
 
-        // onSnapshot রিয়েল-টাইমে কার্টের পরিবর্তন শোনে
         cartUnsubscribe = onSnapshot(userCartRef, (docSnap) => {
             let cartData = { items: [], total: 0 };
-            
             if (docSnap.exists() && docSnap.data().items) {
                 cartData = docSnap.data();
             }
@@ -254,40 +236,32 @@
         });
     }
     
-    // === 3. Add to Cart (Firestore) ===
+    // === Add to Cart ===
     async function addToCart(productId, name, price) {
         if (!currentUser) return showNotification("Please login first!");
 
         try {
-            // বর্তমান কার্টটি আগে লোড করি
             const docSnap = await getDoc(userCartRef);
             const cartData = docSnap.exists() ? docSnap.data() : { items: [], total: 0 };
-
-            // আইটেমটি কার্টে আছে কিনা দেখি
             const existingItemIndex = cartData.items.findIndex(item => item.id === productId);
 
             if (existingItemIndex > -1) {
-                // যদি থাকে, তাহলে quantity বাড়াই
-                cartData.items[existingItemIndex].quantity = (cartData.items[existingItemIndex].quantity || 1) + 1;
+                cartData.items[existingItemIndex].quantity++;
             } else {
-                // নতুন আইটেম যোগ করি
-                cartData.items.push({ id: productId, name: name, price: price, quantity: 1 });
+                cartData.items.push({ id: productId, name, price, quantity: 1 });
             }
 
-            // নতুন টোটাল গণনা করি
             cartData.total = cartData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            // Firestore-এ আপডেট সেভ করি
             await setDoc(userCartRef, cartData);
             showNotification(`${name} added to cart!`);
 
         } catch (err) {
-            console.error("Error adding to cart: ", err);
+            console.error(err);
             showNotification("Error adding to cart.");
         }
     }
 
-    // === 4. Update Cart UI ===
+    // === Update Cart UI ===
     function updateCartUI(cartData) {
         if (cartData.items.length === 0) {
             cartDiv.style.display = 'none';
@@ -296,22 +270,19 @@
 
         cartDiv.style.display = 'block';
         cartItems.innerHTML = "";
-        
         cartData.items.forEach((item) => {
             cartItems.innerHTML += `<p>${item.name} (Qty: ${item.quantity}) - $${item.price * item.quantity}</p>`;
         });
-        
-        totalSpan.textContent = cartData.total.toFixed(2); // ২ দশমিক স্থান পর্যন্ত
+        totalSpan.textContent = cartData.total.toFixed(2);
     }
 
-    // === 5. Checkout & Save Order (Sub-collection) ===
+    // === Checkout ===
     checkoutBtn.onclick = async () => {
       const address = addressBox.value.trim();
       if (!address) return showNotification("Please enter your address!");
       if (!currentUser) return showNotification("Please login first!");
 
       try {
-          // প্রথমে বর্তমান কার্টটি নিই
           const cartSnap = await getDoc(userCartRef);
           if (!cartSnap.exists() || cartSnap.data().items.length === 0) {
               return showNotification("Your cart is empty!");
@@ -319,7 +290,6 @@
           
           const cartData = cartSnap.data();
 
-          // `users/{userId}/orders` কালেকশনে একটি *নতুন* অর্ডার ডকুমেন্ট তৈরি করি
           await addDoc(collection(db, "users", currentUser.uid, "orders"), {
             name: currentUser.displayName,
             email: currentUser.email,
@@ -330,9 +300,7 @@
             time: new Date().toISOString()
           });
 
-          // অর্ডার সফল হলে, কার্টটি খালি করে দিই
           await setDoc(userCartRef, { items: [], total: 0 });
-
           showNotification("✅ Order placed successfully!");
           addressBox.value = "";
           
@@ -343,3 +311,4 @@
   </script>
 </body>
 </html>
+
