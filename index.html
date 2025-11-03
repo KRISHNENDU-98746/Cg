@@ -31,10 +31,6 @@
       gap: 8px;
     }
 
-    .nav-left span {
-      color: #fff;
-    }
-
     /* 🔹 Center: Email + Search Bar */
     .nav-center {
       display: flex;
@@ -126,6 +122,22 @@
       color: #444;
     }
 
+    /* 🛒 Add to Cart Button */
+    .add-to-cart {
+      margin-top: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .add-to-cart:hover {
+      background: #388E3C;
+    }
+
     @media (max-width: 768px) {
       nav {
         flex-direction: column;
@@ -183,6 +195,7 @@
     const productGrid = document.getElementById('product-grid');
     const searchBar = document.getElementById('searchBar');
     let allProducts = [];
+    let cart = [];
 
     // 🧩 Load Products from Firestore
     async function loadProducts() {
@@ -204,8 +217,23 @@
           <h3>${p.name}</h3>
           <p>Price: $${p.price}</p>
           <p>${p.description || ''}</p>
+          <button class="add-to-cart" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">🛒 Add to Cart</button>
         </div>
       `).join('');
+
+      // 🛒 Add button functionality
+      document.querySelectorAll(".add-to-cart").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const product = {
+            id: btn.dataset.id,
+            name: btn.dataset.name,
+            price: btn.dataset.price
+          };
+          cart.push(product);
+          console.log("🛒 Cart:", cart);
+          alert(`${product.name} added to cart!`);
+        });
+      });
     }
 
     // 🔍 Search Function
