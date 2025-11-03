@@ -21,7 +21,6 @@
       flex-wrap: wrap;
     }
 
-    /* 🔹 Left: Logo + Name */
     .nav-left {
       display: flex;
       align-items: center;
@@ -31,7 +30,6 @@
       gap: 8px;
     }
 
-    /* 🔹 Center: Email + Search Bar */
     .nav-center {
       display: flex;
       align-items: center;
@@ -63,7 +61,6 @@
       outline: none;
     }
 
-    /* 🔹 Right: Icons */
     .nav-right {
       display: flex;
       align-items: center;
@@ -102,6 +99,11 @@
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       padding: 10px;
       text-align: center;
+      transition: transform 0.2s ease;
+    }
+
+    .product:hover {
+      transform: translateY(-3px);
     }
 
     .product img {
@@ -128,14 +130,15 @@
       background: #4CAF50;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 8px 14px;
       border-radius: 8px;
       cursor: pointer;
       transition: background 0.3s;
+      font-weight: 500;
     }
 
     .add-to-cart:hover {
-      background: #388E3C;
+      background: #3e8e41;
     }
 
     @media (max-width: 768px) {
@@ -152,7 +155,6 @@
 </head>
 <body>
 
-  <!-- 🔝 Header -->
   <nav>
     <div class="nav-left">
       🦙 <span>Firestore Store</span>
@@ -169,12 +171,10 @@
     </div>
   </nav>
 
-  <!-- 🧩 Product Grid -->
   <div id="product-grid">
     <p>Loading products...</p>
   </div>
 
-  <!-- 🔥 Firebase Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getFirestore, collection, getDocs } 
@@ -195,9 +195,7 @@
     const productGrid = document.getElementById('product-grid');
     const searchBar = document.getElementById('searchBar');
     let allProducts = [];
-    let cart = [];
 
-    // 🧩 Load Products from Firestore
     async function loadProducts() {
       productGrid.innerHTML = "<p>Loading products...</p>";
       const snapshot = await getDocs(collection(db, "products"));
@@ -205,38 +203,23 @@
       displayProducts(allProducts);
     }
 
-    // 🧠 Display Products
     function displayProducts(products) {
       if (products.length === 0) {
         productGrid.innerHTML = "<p>No products found.</p>";
         return;
       }
+
       productGrid.innerHTML = products.map(p => `
         <div class="product">
           <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.name}">
           <h3>${p.name}</h3>
           <p>Price: $${p.price}</p>
           <p>${p.description || ''}</p>
-          <button class="add-to-cart" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">🛒 Add to Cart</button>
+          <button class="add-to-cart" onclick="alert('Added ${p.name} to cart!')">🛒 Add to Cart</button>
         </div>
       `).join('');
-
-      // 🛒 Add button functionality
-      document.querySelectorAll(".add-to-cart").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const product = {
-            id: btn.dataset.id,
-            name: btn.dataset.name,
-            price: btn.dataset.price
-          };
-          cart.push(product);
-          console.log("🛒 Cart:", cart);
-          alert(`${product.name} added to cart!`);
-        });
-      });
     }
 
-    // 🔍 Search Function
     searchBar.addEventListener("input", () => {
       const keyword = searchBar.value.toLowerCase();
       const filtered = allProducts.filter(p => p.name.toLowerCase().includes(keyword));
