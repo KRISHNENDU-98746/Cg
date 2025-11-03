@@ -22,49 +22,35 @@
       margin: 5px;
     }
     .btn:hover { background: #45a049; }
-    
+
     #product-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 20px;
-        padding: 20px;
-        max-width: 1200px;
-        margin: 20px auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 20px auto;
     }
-    
     .product {
       background: white;
       padding: 15px;
-      border-radius: 10px; 
+      border-radius: 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
     img { width: 100%; border-radius: 8px; }
 
-    .cart { 
-      background: #fff; 
-      margin: 20px auto; 
-      padding: 20px; 
-      border-radius: 10px; 
-      max-width: 800px; 
+    .cart {
+      background: #fff; margin: 20px auto; padding: 20px;
+      border-radius: 10px; max-width: 800px;
     }
-    
-    input, textarea {
-      width: 90%; padding: 10px; margin: 8px 0;
-      border: 1px solid #ccc; border-radius: 6px;
-    }
-    
+
     #notification {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: #333;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        display: none;
-        z-index: 100;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background-color: #333; color: white;
+      padding: 12px 20px; border-radius: 8px;
+      display: none; z-index: 100;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
   </style>
 </head>
@@ -78,9 +64,7 @@
 
   <div id="store" style="display:none;">
     <h3>Products</h3>
-    <div id="product-grid">
-        <!-- Products will be loaded from Firestore -->
-    </div>
+    <div id="product-grid"></div>
 
     <div id="cart" class="cart" style="display:none;">
       <h3>🛍 Your Cart</h3>
@@ -90,21 +74,17 @@
       <button class="btn" id="checkoutBtn">Checkout</button>
     </div>
   </div>
-  
+
   <div id="notification"></div>
 
   <script type="module">
-    // === Import Firebase SDKs ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { 
-      getFirestore, doc, setDoc, getDoc, onSnapshot, 
-      collection, addDoc, getDocs 
+      getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, getDocs 
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
     import { 
-      getAuth, GoogleAuthProvider, signInWithPopup, 
-      signOut, onAuthStateChanged 
+      getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged 
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
 
     // === Firebase Config ===
     const firebaseConfig = {
@@ -112,64 +92,50 @@
       authDomain: "thelong-6274a.firebaseapp.com",
       databaseURL: "https://thelong-6274a-default-rtdb.firebaseio.com",
       projectId: "thelong-6274a",
-      storageBucket: "thelong-6274a.appspot.com",   // ✅ fixed domain
+      storageBucket: "thelong-6274a.appspot.com",
       messagingSenderId: "729094241594",
       appId: "1:729094241594:web:17b32ea302bb45814fa403",
       measurementId: "G-DPSPS3MDBF"
     };
 
-    // === Initialize Firebase ===
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
-    const analytics = getAnalytics(app);
 
-    // === UI Elements ===
+    // ✅ Use your custom OAuth client ID here (optional)
+    provider.setCustomParameters({
+      client_id: "729094241594-c6futmajfvkcnrj6il9hrd07o8cm0vbh.apps.googleusercontent.com" // replace with your real OAuth client ID if needed
+    });
+
+    // === Notification ===
+    const notification = document.getElementById('notification');
+    function showNotification(message) {
+      notification.textContent = message;
+      notification.style.display = 'block';
+      setTimeout(() => notification.style.display = 'none', 3000);
+    }
+
     const googleLogin = document.getElementById('googleLogin');
     const userInfo = document.getElementById('userInfo');
     const store = document.getElementById('store');
-    const cartDiv = document.getElementById('cart');
-    const cartItems = document.getElementById('cartItems');
-    const totalSpan = document.getElementById('total');
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    const addressBox = document.getElementById('address');
-    const productGrid = document.getElementById('product-grid');
-    const notification = document.getElementById('notification');
 
     let currentUser = null;
-    let userCartRef = null;
-    let cartUnsubscribe = null;
 
-    // === Notification (Custom Toast) ===
-    function showNotification(message) {
-        notification.textContent = message;
-        notification.style.display = 'block';
-        setTimeout(() => { notification.style.display = 'none'; }, 3000);
-    }
-
-    // === Auth State ===
+    // === Auth Listener ===
     onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            userInfo.innerHTML = `Welcome, ${currentUser.displayName} <br> 
-              <button class="btn" id="logoutBtn">Logout</button>`;
-            googleLogin.style.display = 'none';
-            store.style.display = 'block';
-
-            document.getElementById('logoutBtn').onclick = async () => await signOut(auth);
-            
-            await setupCartListener(user.uid);
-            await fetchProducts();
-
-        } else {
-            currentUser = null;
-            userInfo.innerHTML = ``;
-            googleLogin.style.display = 'block';
-            store.style.display = 'none';
-            cartDiv.style.display = 'none';
-            if (cartUnsubscribe) cartUnsubscribe();
-        }
+      if (user) {
+        currentUser = user;
+        userInfo.innerHTML = `Welcome, ${user.displayName} <br> <button class="btn" id="logoutBtn">Logout</button>`;
+        googleLogin.style.display = 'none';
+        store.style.display = 'block';
+        document.getElementById('logoutBtn').onclick = async () => await signOut(auth);
+      } else {
+        currentUser = null;
+        userInfo.innerHTML = "";
+        googleLogin.style.display = 'block';
+        store.style.display = 'none';
+      }
     });
 
     // === Google Login ===
@@ -181,134 +147,6 @@
         showNotification(error.message);
       }
     };
-    
-    // === Fetch Products ===
-    async function fetchProducts() {
-        productGrid.innerHTML = "Loading products...";
-        try {
-            const querySnapshot = await getDocs(collection(db, "products"));
-            productGrid.innerHTML = "";
-            
-            if (querySnapshot.empty) {
-                productGrid.innerHTML = "<p>No products found.</p>";
-                return;
-            }
-
-            querySnapshot.forEach((doc) => {
-                const product = doc.data();
-                const productId = doc.id;
-                productGrid.innerHTML += `
-                    <div class="product">
-                      <img src="${product.imageUrl || 'https://via.placeholder.com/300'}" alt="${product.name}">
-                      <h3>${product.name}</h3>
-                      <p>Price: $${product.price}</p>
-                      <button class="btn" data-id="${productId}" data-name="${product.name}" data-price="${product.price}">Add to Cart</button>
-                    </div>
-                `;
-            });
-            
-            document.querySelectorAll('.product .btn').forEach(button => {
-                button.onclick = (e) => {
-                    const { id, name, price } = e.target.dataset;
-                    addToCart(id, name, parseFloat(price));
-                };
-            });
-
-        } catch (err) {
-            console.error(err);
-            productGrid.innerHTML = "<p>Error loading products.</p>";
-        }
-    }
-    
-    // === Setup Real-Time Cart Listener ===
-    async function setupCartListener(userId) {
-        userCartRef = doc(db, "users", userId, "cart", "current");
-
-        cartUnsubscribe = onSnapshot(userCartRef, (docSnap) => {
-            let cartData = { items: [], total: 0 };
-            if (docSnap.exists() && docSnap.data().items) {
-                cartData = docSnap.data();
-            }
-            updateCartUI(cartData);
-        }, (error) => {
-            console.error("Error listening to cart: ", error);
-            showNotification("Could not load cart.");
-        });
-    }
-    
-    // === Add to Cart ===
-    async function addToCart(productId, name, price) {
-        if (!currentUser) return showNotification("Please login first!");
-
-        try {
-            const docSnap = await getDoc(userCartRef);
-            const cartData = docSnap.exists() ? docSnap.data() : { items: [], total: 0 };
-            const existingItemIndex = cartData.items.findIndex(item => item.id === productId);
-
-            if (existingItemIndex > -1) {
-                cartData.items[existingItemIndex].quantity++;
-            } else {
-                cartData.items.push({ id: productId, name, price, quantity: 1 });
-            }
-
-            cartData.total = cartData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            await setDoc(userCartRef, cartData);
-            showNotification(`${name} added to cart!`);
-
-        } catch (err) {
-            console.error(err);
-            showNotification("Error adding to cart.");
-        }
-    }
-
-    // === Update Cart UI ===
-    function updateCartUI(cartData) {
-        if (cartData.items.length === 0) {
-            cartDiv.style.display = 'none';
-            return;
-        }
-
-        cartDiv.style.display = 'block';
-        cartItems.innerHTML = "";
-        cartData.items.forEach((item) => {
-            cartItems.innerHTML += `<p>${item.name} (Qty: ${item.quantity}) - $${item.price * item.quantity}</p>`;
-        });
-        totalSpan.textContent = cartData.total.toFixed(2);
-    }
-
-    // === Checkout ===
-    checkoutBtn.onclick = async () => {
-      const address = addressBox.value.trim();
-      if (!address) return showNotification("Please enter your address!");
-      if (!currentUser) return showNotification("Please login first!");
-
-      try {
-          const cartSnap = await getDoc(userCartRef);
-          if (!cartSnap.exists() || cartSnap.data().items.length === 0) {
-              return showNotification("Your cart is empty!");
-          }
-          
-          const cartData = cartSnap.data();
-
-          await addDoc(collection(db, "users", currentUser.uid, "orders"), {
-            name: currentUser.displayName,
-            email: currentUser.email,
-            cartItems: cartData.items,
-            totalPrice: cartData.total,
-            address: address,
-            status: "pending",
-            time: new Date().toISOString()
-          });
-
-          await setDoc(userCartRef, { items: [], total: 0 });
-          showNotification("✅ Order placed successfully!");
-          addressBox.value = "";
-          
-      } catch (err) {
-        showNotification("Error placing order: " + err.message);
-      }
-    };
   </script>
 </body>
 </html>
-
