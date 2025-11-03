@@ -9,9 +9,9 @@
       background: #f6f7fb;
       margin: 0;
       padding: 0;
+      overflow-x: hidden;
     }
 
-    /* 🔝 Top Navigation Bar */
     nav {
       background-color: #222;
       display: flex;
@@ -38,18 +38,6 @@
       justify-content: center;
     }
 
-    .nav-center input {
-      padding: 8px 15px;
-      font-size: 15px;
-      border-radius: 12px;
-      border: none;
-      outline: none;
-      width: 250px;
-      background-color: #111;
-      color: white;
-      border: 3px solid #000;
-    }
-
     .nav-center .search-bar {
       width: 220px;
       background-color: white;
@@ -70,7 +58,7 @@
     .icon-box {
       color: white;
       background: transparent;
-      border: 3px solid black;
+      border: 2px solid #555;
       padding: 6px 14px;
       border-radius: 15px;
       font-size: 16px;
@@ -83,7 +71,6 @@
       border-color: #4CAF50;
     }
 
-    /* 🧩 Product Grid */
     #product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -124,7 +111,6 @@
       color: #444;
     }
 
-    /* 🛒 Add to Cart Button */
     .add-to-cart {
       margin-top: 10px;
       background: #4CAF50;
@@ -141,14 +127,86 @@
       background: #3e8e41;
     }
 
+    /* 🛒 Cart Drawer */
+    #cartDrawer {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 350px;
+      height: 100%;
+      background: white;
+      box-shadow: -3px 0 8px rgba(0,0,0,0.2);
+      transition: right 0.3s ease;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    #cartDrawer.open {
+      right: 0;
+    }
+
+    #cartDrawer h2 {
+      margin-top: 0;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+
+    .cart-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+    }
+
+    .cart-item span {
+      font-size: 14px;
+    }
+
+    .cart-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cart-controls button {
+      background: #eee;
+      border: none;
+      padding: 3px 7px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .cart-total {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+
+    .checkout-btn {
+      display: block;
+      width: 100%;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    .checkout-btn:hover {
+      background: #3e8e41;
+    }
+
     @media (max-width: 768px) {
-      nav {
-        flex-direction: column;
-        gap: 10px;
-      }
-      .nav-center {
-        flex-direction: column;
-        gap: 10px;
+      #cartDrawer {
+        width: 80%;
       }
     }
   </style>
@@ -161,18 +219,24 @@
     </div>
 
     <div class="nav-center">
-      <input type="text" placeholder="email and address details">
       <input type="text" id="searchBar" class="search-bar" placeholder="Search product by name...">
     </div>
 
     <div class="nav-right">
-      <div class="icon-box">🛒 cart icon</div>
-      <div class="icon-box">⚙️ setting icon</div>
+      <div class="icon-box" id="cartButton">🛒 Cart</div>
     </div>
   </nav>
 
   <div id="product-grid">
     <p>Loading products...</p>
+  </div>
+
+  <!-- 🛒 Cart Drawer -->
+  <div id="cartDrawer">
+    <h2>🛍️ My Cart</h2>
+    <div id="cartItems"></div>
+    <div class="cart-total">Total: $<span id="cartTotal">0</span></div>
+    <button class="checkout-btn">Checkout</button>
   </div>
 
   <script type="module">
@@ -194,7 +258,18 @@
 
     const productGrid = document.getElementById('product-grid');
     const searchBar = document.getElementById('searchBar');
+    const cartDrawer = document.getElementById('cartDrawer');
+    const cartButton = document.getElementById('cartButton');
+    const cartItemsContainer = document.getElementById('cartItems');
+    const cartTotalEl = document.getElementById('cartTotal');
+
     let allProducts = [];
+    let cart = [];
+
+    cartButton.addEventListener("click", () => {
+      cartDrawer.classList.toggle("open");
+      renderCart();
+    });
 
     async function loadProducts() {
       productGrid.innerHTML = "<p>Loading products...</p>";
@@ -215,10 +290,60 @@
           <h3>${p.name}</h3>
           <p>Price: $${p.price}</p>
           <p>${p.description || ''}</p>
-          <button class="add-to-cart" onclick="alert('Added ${p.name} to cart!')">🛒 Add to Cart</button>
+          <button class="add-to-cart" data-id="${p.id}">🛒 Add to Cart</button>
         </div>
       `).join('');
+
+      document.querySelectorAll('.add-to-cart').forEach(btn => {
+        btn.addEventListener('click', () => addToCart(btn.dataset.id));
+      });
     }
+
+    function addToCart(id) {
+      const product = allProducts.find(p => p.id === id);
+      const existing = cart.find(item => item.id === id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({ ...product, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      if (cart.length === 0) {
+        cartItemsContainer.innerHTML = "<p>Your cart is empty</p>";
+        cartTotalEl.textContent = "0";
+        return;
+      }
+
+      cartItemsContainer.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <span>${item.name} ($${item.price})</span>
+          <div class="cart-controls">
+            <button onclick="decreaseQty('${item.id}')">-</button>
+            <span>${item.qty}</span>
+            <button onclick="increaseQty('${item.id}')">+</button>
+          </div>
+        </div>
+      `).join('');
+
+      const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+      cartTotalEl.textContent = total.toFixed(2);
+    }
+
+    window.increaseQty = (id) => {
+      const item = cart.find(i => i.id === id);
+      if (item) item.qty++;
+      renderCart();
+    };
+
+    window.decreaseQty = (id) => {
+      const item = cart.find(i => i.id === id);
+      if (item && item.qty > 1) item.qty--;
+      else cart = cart.filter(i => i.id !== id);
+      renderCart();
+    };
 
     searchBar.addEventListener("input", () => {
       const keyword = searchBar.value.toLowerCase();
