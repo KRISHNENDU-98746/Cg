@@ -2,65 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Firestore Product Store with Search</title>
+  <title>🛍 Firestore Product Store</title>
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
-      background: #f4f6f8;
+      font-family: 'Poppins', Arial, sans-serif;
+      background: #f5f6fa;
       margin: 0;
       padding: 0;
-      text-align: center;
     }
 
+    /* 🔝 Header with Search */
     header {
       background: #222;
-      color: white;
+      color: #fff;
       padding: 20px;
-      font-size: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    /* 🔍 Search Box Container */
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      flex: 1;
+      text-align: left;
+      padding-left: 20px;
+    }
+
     .search-container {
+      flex: 2;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 25px auto;
-      max-width: 500px;
-      background: #fff;
-      border-radius: 40px;
-      padding: 8px 15px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin: 10px;
     }
 
     .search-container input {
-      flex: 1;
+      width: 80%;
+      max-width: 400px;
+      padding: 10px 15px;
+      border-radius: 30px;
       border: none;
       outline: none;
-      padding: 10px 15px;
-      font-size: 16px;
-      border-radius: 40px;
-    }
-
-    .search-container button {
-      background: #4CAF50;
-      border: none;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 30px;
-      cursor: pointer;
       font-size: 16px;
     }
 
-    .search-container button:hover {
-      background: #45a049;
+    .search-container input::placeholder {
+      color: #888;
     }
 
-    /* Product Grid */
     #product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
-      padding: 20px;
+      padding: 30px;
       max-width: 1200px;
       margin: auto;
     }
@@ -68,14 +64,14 @@
     .product {
       background: #fff;
       padding: 15px;
-      border-radius: 10px;
+      border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       text-align: center;
       transition: transform 0.2s;
     }
 
     .product:hover {
-      transform: translateY(-5px);
+      transform: translateY(-4px);
     }
 
     .product img {
@@ -94,19 +90,30 @@
       margin: 0;
       color: #555;
     }
+
+    @media (max-width: 600px) {
+      header {
+        flex-direction: column;
+        text-align: center;
+      }
+      header h1 {
+        padding-left: 0;
+        margin-bottom: 10px;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <header>🛍 Firestore Product Store</header>
+  <!-- 🔝 Header Section -->
+  <header>
+    <h1>🛍 Firestore Store</h1>
+    <div class="search-container">
+      <input type="text" id="searchBar" placeholder="Search product by name...">
+    </div>
+  </header>
 
-  <!-- 🔍 Search Box -->
-  <div class="search-container">
-    <input type="text" id="searchBar" placeholder="Search products by name...">
-    <button id="searchBtn">Search</button>
-  </div>
-
-  <!-- Product Grid -->
+  <!-- 🧩 Product Grid -->
   <div id="product-grid">
     <p>Loading products...</p>
   </div>
@@ -131,7 +138,6 @@
 
     const productGrid = document.getElementById('product-grid');
     const searchBar = document.getElementById('searchBar');
-    const searchBtn = document.getElementById('searchBtn');
 
     let allProducts = [];
 
@@ -160,22 +166,16 @@
       `).join('');
     }
 
-    // 🔍 Search Functionality
-    function searchProducts() {
-      const keyword = searchBar.value.toLowerCase().trim();
+    // 🔍 Live Search Function
+    searchBar.addEventListener("input", (e) => {
+      const keyword = e.target.value.toLowerCase().trim();
       const filtered = allProducts.filter(p => 
         p.name.toLowerCase().includes(keyword)
       );
       displayProducts(filtered);
-    }
-
-    // 🔄 Event Listeners
-    searchBtn.addEventListener("click", searchProducts);
-    searchBar.addEventListener("keyup", (e) => {
-      if (e.key === "Enter") searchProducts();
     });
 
-    // 🚀 Load products on start
+    // 🚀 Initial Load
     loadProducts();
   </script>
 
