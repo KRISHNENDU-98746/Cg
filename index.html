@@ -5,53 +5,83 @@
   <title>🛍 Firestore Product Store</title>
   <style>
     body {
-      font-family: 'Poppins', Arial, sans-serif;
+      font-family: 'Poppins', sans-serif;
       background: #f5f6fa;
       margin: 0;
       padding: 0;
     }
 
-    /* 🔝 Header with Search */
-    header {
-      background: #222;
-      color: #fff;
-      padding: 20px;
+    /* 🔝 Navigation Bar */
+    nav {
+      background: #111;
+      color: white;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 15px 30px;
       flex-wrap: wrap;
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 22px;
-      flex: 1;
-      text-align: left;
-      padding-left: 20px;
+    .nav-left, .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
 
+    .nav-left a, .nav-right a {
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      transition: color 0.3s;
+    }
+
+    .nav-left a:hover, .nav-right a:hover {
+      color: #4CAF50;
+    }
+
+    .nav-center {
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    /* 🔍 Search Bar */
     .search-container {
-      flex: 2;
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 10px;
+      margin: 25px auto;
+      max-width: 500px;
+      background: #fff;
+      border-radius: 40px;
+      padding: 8px 15px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .search-container input {
-      width: 80%;
-      max-width: 400px;
-      padding: 10px 15px;
-      border-radius: 30px;
+      flex: 1;
       border: none;
       outline: none;
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 40px;
+    }
+
+    .search-container button {
+      background: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 30px;
+      cursor: pointer;
       font-size: 16px;
     }
 
-    .search-container input::placeholder {
-      color: #888;
+    .search-container button:hover {
+      background: #45a049;
     }
 
+    /* 🧩 Product Grid */
     #product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -92,26 +122,36 @@
     }
 
     @media (max-width: 600px) {
-      header {
+      nav {
         flex-direction: column;
         text-align: center;
       }
-      header h1 {
-        padding-left: 0;
-        margin-bottom: 10px;
+      .nav-center {
+        margin-top: 10px;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- 🔝 Header Section -->
-  <header>
-    <h1>🛍 Firestore Store</h1>
-    <div class="search-container">
-      <input type="text" id="searchBar" placeholder="Search product by name...">
+  <!-- 🔝 Navigation Bar -->
+  <nav>
+    <div class="nav-left">
+      <a href="#">📧 Email</a>
+      <a href="#">📄 Details</a>
     </div>
-  </header>
+    <div class="nav-center">🛍 Firestore Product Store</div>
+    <div class="nav-right">
+      <a href="#">🛒 Cart</a>
+      <a href="#">⚙️ Settings</a>
+    </div>
+  </nav>
+
+  <!-- 🔍 Search Box -->
+  <div class="search-container">
+    <input type="text" id="searchBar" placeholder="Search products by name...">
+    <button id="searchBtn">Search</button>
+  </div>
 
   <!-- 🧩 Product Grid -->
   <div id="product-grid">
@@ -138,10 +178,11 @@
 
     const productGrid = document.getElementById('product-grid');
     const searchBar = document.getElementById('searchBar');
+    const searchBtn = document.getElementById('searchBtn');
 
     let allProducts = [];
 
-    // 🧩 Fetch Products from Firestore
+    // 🧩 Load Products
     async function loadProducts() {
       productGrid.innerHTML = "<p>Loading products...</p>";
       const snapshot = await getDocs(collection(db, "products"));
@@ -155,7 +196,6 @@
         productGrid.innerHTML = "<p>No products found.</p>";
         return;
       }
-
       productGrid.innerHTML = products.map(p => `
         <div class="product">
           <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.name}">
@@ -166,16 +206,19 @@
       `).join('');
     }
 
-    // 🔍 Live Search Function
-    searchBar.addEventListener("input", (e) => {
-      const keyword = e.target.value.toLowerCase().trim();
-      const filtered = allProducts.filter(p => 
-        p.name.toLowerCase().includes(keyword)
-      );
+    // 🔍 Search Functionality
+    function searchProducts() {
+      const keyword = searchBar.value.toLowerCase().trim();
+      const filtered = allProducts.filter(p => p.name.toLowerCase().includes(keyword));
       displayProducts(filtered);
+    }
+
+    searchBtn.addEventListener("click", searchProducts);
+    searchBar.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") searchProducts();
     });
 
-    // 🚀 Initial Load
+    // 🚀 Load Products Initially
     loadProducts();
   </script>
 
