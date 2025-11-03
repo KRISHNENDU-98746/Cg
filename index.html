@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Firestore Store - Login First</title>
+  <title>Firestore Store with Cart</title>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
+      background: #f6f7fb;
       margin: 0;
       padding: 0;
-      background: #f6f7fb;
     }
 
     /* LOGIN PAGE */
@@ -74,9 +74,20 @@
       cursor: pointer;
     }
 
+    #cartBtn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+
+    /* PRODUCTS */
     #product-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 20px;
       padding: 25px;
     }
@@ -87,7 +98,6 @@
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       padding: 10px;
       text-align: center;
-      cursor: pointer;
       transition: transform 0.2s ease;
     }
 
@@ -101,11 +111,93 @@
       object-fit: cover;
       border-radius: 10px;
     }
+
+    .add-to-cart {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* CART SIDEBAR */
+    #cart {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 350px;
+      height: 100%;
+      background: #fff;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+      transition: right 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #cart.open {
+      right: 0;
+    }
+
+    #cart-header {
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #cart-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f6f7fb;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      padding: 8px;
+    }
+
+    .cart-item span {
+      font-size: 14px;
+    }
+
+    #cart-footer {
+      padding: 15px;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+    }
+
+    #checkoutBtn {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #closeCart {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-  <!-- LOGIN SCREEN -->
+  <!-- LOGIN PAGE -->
   <div id="loginPage">
     <h1>Welcome to Firestore Store 🛍️</h1>
     <button id="googleLogin" class="google-btn">
@@ -119,10 +211,26 @@
     <nav>
       <div>Firestore Store</div>
       <input type="text" id="searchBar" placeholder="Search products...">
-      <button id="logoutBtn">Logout</button>
+      <div>
+        <button id="cartBtn">🛒 Cart</button>
+        <button id="logoutBtn">Logout</button>
+      </div>
     </nav>
 
     <div id="product-grid"><p>Loading products...</p></div>
+  </div>
+
+  <!-- CART SIDEBAR -->
+  <div id="cart">
+    <div id="cart-header">
+      <span>Your Cart</span>
+      <button id="closeCart">✖</button>
+    </div>
+    <div id="cart-items"></div>
+    <div id="cart-footer">
+      <p><strong>Total: $<span id="cartTotal">0</span></strong></p>
+      <button id="checkoutBtn">Checkout</button>
+    </div>
   </div>
 
   <script type="module">
@@ -130,7 +238,6 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
       authDomain: "thelong-6274a.firebaseapp.com",
@@ -151,15 +258,20 @@
     const logoutBtn = document.getElementById("logoutBtn");
     const searchBar = document.getElementById("searchBar");
     const productGrid = document.getElementById("product-grid");
+    const cart = document.getElementById("cart");
+    const cartBtn = document.getElementById("cartBtn");
+    const closeCart = document.getElementById("closeCart");
+    const cartItems = document.getElementById("cart-items");
+    const cartTotal = document.getElementById("cartTotal");
+    const checkoutBtn = document.getElementById("checkoutBtn");
 
     let allProducts = [];
+    let cartList = [];
 
-    // 🔹 Google Login
     googleLogin.addEventListener("click", async () => {
       await signInWithPopup(auth, provider);
     });
 
-    // 🔹 Auth State Change
     onAuthStateChanged(auth, (user) => {
       if (user) {
         loginPage.style.display = "none";
@@ -171,7 +283,6 @@
       }
     });
 
-    // 🔹 Logout
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
     });
@@ -183,25 +294,56 @@
       displayProducts(allProducts);
     }
 
-    // 🔹 Display Products
     function displayProducts(products) {
       productGrid.innerHTML = products.map(p => `
         <div class="product">
-          <img src="${p.image || 'https://via.placeholder.com/200'}">
+          <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.name}">
           <h3>${p.name}</h3>
           <p>$${p.price}</p>
+          <button class="add-to-cart" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.image}')">Add to Cart</button>
         </div>
       `).join('');
     }
 
-    // 🔹 Search Function
+    // 🛒 Add to Cart
+    window.addToCart = (id, name, price, image) => {
+      const existing = cartList.find(item => item.id === id);
+      if (existing) existing.qty++;
+      else cartList.push({ id, name, price, image, qty: 1 });
+      updateCart();
+    };
+
+    // 🧾 Update Cart View
+    function updateCart() {
+      cartItems.innerHTML = cartList.map(item => `
+        <div class="cart-item">
+          <span>${item.name} (${item.qty})</span>
+          <span>$${item.price * item.qty}</span>
+        </div>
+      `).join('');
+      const total = cartList.reduce((sum, i) => sum + i.price * i.qty, 0);
+      cartTotal.textContent = total.toFixed(2);
+    }
+
+    // 🛒 Cart Toggle
+    cartBtn.addEventListener("click", () => cart.classList.add("open"));
+    closeCart.addEventListener("click", () => cart.classList.remove("open"));
+
+    // ✅ Checkout
+    checkoutBtn.addEventListener("click", () => {
+      if (cartList.length === 0) return alert("Your cart is empty!");
+      alert("✅ Order placed successfully!");
+      cartList = [];
+      updateCart();
+      cart.classList.remove("open");
+    });
+
+    // 🔍 Search Function
     searchBar.addEventListener("input", () => {
       const keyword = searchBar.value.toLowerCase();
       const filtered = allProducts.filter(p => p.name.toLowerCase().includes(keyword));
       displayProducts(filtered);
     });
-
   </script>
 </body>
 </html>
-
