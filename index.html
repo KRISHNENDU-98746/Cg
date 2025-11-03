@@ -18,57 +18,16 @@
       align-items: center;
       justify-content: space-between;
       padding: 12px 25px;
-      flex-wrap: wrap;
-    }
-
-    .nav-left {
-      display: flex;
-      align-items: center;
       color: white;
-      font-size: 20px;
-      font-weight: 600;
-      gap: 8px;
     }
 
-    .nav-center {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      flex: 1;
-      justify-content: center;
-    }
-
-    .nav-center .search-bar {
-      width: 220px;
-      background-color: white;
-      color: black;
-      border-radius: 50px;
-      border: none;
-      padding: 10px 15px;
+    .nav-center input {
+      padding: 8px 15px;
       font-size: 15px;
+      border-radius: 12px;
+      border: none;
       outline: none;
-    }
-
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .icon-box {
-      color: white;
-      background: transparent;
-      border: 2px solid #555;
-      padding: 6px 14px;
-      border-radius: 15px;
-      font-size: 16px;
-      transition: all 0.3s;
-      cursor: pointer;
-    }
-
-    .icon-box:hover {
-      background: #4CAF50;
-      border-color: #4CAF50;
+      width: 250px;
     }
 
     #product-grid {
@@ -83,10 +42,11 @@
     .product {
       background: white;
       border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       padding: 10px;
       text-align: center;
       transition: transform 0.2s ease;
+      cursor: pointer;
     }
 
     .product:hover {
@@ -100,143 +60,171 @@
       border-radius: 10px;
     }
 
-    .product h3 {
-      margin: 10px 0 5px;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .product p {
-      margin: 0;
-      color: #444;
-    }
-
-    .add-to-cart {
-      margin-top: 10px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.3s;
-      font-weight: 500;
-    }
-
-    .add-to-cart:hover {
-      background: #3e8e41;
-    }
-
-    /* 🛒 Cart Drawer */
-    #cartDrawer {
+    /* 🔹 Product Detail Overlay */
+    #productDetail {
       position: fixed;
       top: 0;
-      right: -400px;
-      width: 350px;
+      left: 0;
+      width: 100%;
       height: 100%;
       background: white;
-      box-shadow: -3px 0 8px rgba(0,0,0,0.2);
-      transition: right 0.3s ease;
-      padding: 20px;
+      display: none;
+      flex-direction: column;
       overflow-y: auto;
       z-index: 1000;
     }
 
-    #cartDrawer.open {
-      right: 0;
-    }
-
-    #cartDrawer h2 {
-      margin-top: 0;
-      text-align: center;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 10px;
-    }
-
-    .cart-item {
+    #productDetail.open {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 10px 0;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 8px;
     }
 
-    .cart-item span {
-      font-size: 14px;
+    .detail-header {
+      position: relative;
     }
 
-    .cart-controls {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .cart-controls button {
-      background: #eee;
-      border: none;
-      padding: 3px 7px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .cart-total {
-      text-align: center;
-      font-weight: bold;
-      margin-top: 15px;
-    }
-
-    .checkout-btn {
-      display: block;
+    .detail-header img {
       width: 100%;
-      background: #4CAF50;
+      height: 400px;
+      object-fit: cover;
+    }
+
+    .detail-body {
+      padding: 20px;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(0,0,0,0.6);
       color: white;
       border: none;
-      padding: 10px;
+      padding: 8px 12px;
       border-radius: 8px;
       cursor: pointer;
-      margin-top: 15px;
+    }
+
+    .product-name {
+      font-size: 22px;
       font-weight: 600;
     }
 
-    .checkout-btn:hover {
-      background: #3e8e41;
+    .product-price {
+      font-size: 20px;
+      color: #4CAF50;
+      margin-top: 8px;
     }
 
-    @media (max-width: 768px) {
-      #cartDrawer {
-        width: 80%;
-      }
+    .size-options {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .size-btn {
+      padding: 8px 12px;
+      border-radius: 50%;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+    }
+
+    .size-btn.selected {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .qty-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .qty-control button {
+      border: none;
+      background: #ddd;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+    }
+
+    .add-to-bag {
+      width: 100%;
+      background: #222;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .reviews {
+      margin-top: 30px;
+      padding: 15px;
+      border-top: 1px solid #eee;
+    }
+
+    .review {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+
+    .review strong {
+      color: #333;
     }
   </style>
 </head>
 <body>
 
   <nav>
-    <div class="nav-left">
-      🦙 <span>Firestore Store</span>
-    </div>
-
+    <h2>Firestore Store</h2>
     <div class="nav-center">
-      <input type="text" id="searchBar" class="search-bar" placeholder="Search product by name...">
+      <input type="text" id="searchBar" placeholder="Search products...">
     </div>
-
-    <div class="nav-right">
-      <div class="icon-box" id="cartButton">🛒 Cart</div>
-    </div>
+    <div>🛒</div>
   </nav>
 
   <div id="product-grid">
     <p>Loading products...</p>
   </div>
 
-  <!-- 🛒 Cart Drawer -->
-  <div id="cartDrawer">
-    <h2>🛍️ My Cart</h2>
-    <div id="cartItems"></div>
-    <div class="cart-total">Total: $<span id="cartTotal">0</span></div>
-    <button class="checkout-btn">Checkout</button>
+  <!-- 🔹 Product Detail Page -->
+  <div id="productDetail">
+    <div class="detail-header">
+      <button class="back-btn">← Back</button>
+      <img id="detailImage" src="">
+    </div>
+    <div class="detail-body">
+      <div class="product-name" id="detailName"></div>
+      <div class="product-price" id="detailPrice"></div>
+      <p id="detailDescription"></p>
+
+      <h4>Select size</h4>
+      <div class="size-options" id="sizeOptions">
+        <button class="size-btn">XS</button>
+        <button class="size-btn">S</button>
+        <button class="size-btn">M</button>
+        <button class="size-btn">L</button>
+        <button class="size-btn">XL</button>
+      </div>
+
+      <div class="qty-control">
+        <button id="minusQty">-</button>
+        <span id="qtyValue">1</span>
+        <button id="plusQty">+</button>
+      </div>
+
+      <button class="add-to-bag">Add to Bag</button>
+
+      <div class="reviews">
+        <h3>Reviews</h3>
+        <div id="reviewsContainer"></div>
+      </div>
+    </div>
   </div>
 
   <script type="module">
@@ -256,94 +244,59 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const productGrid = document.getElementById('product-grid');
-    const searchBar = document.getElementById('searchBar');
-    const cartDrawer = document.getElementById('cartDrawer');
-    const cartButton = document.getElementById('cartButton');
-    const cartItemsContainer = document.getElementById('cartItems');
-    const cartTotalEl = document.getElementById('cartTotal');
+    const productGrid = document.getElementById("product-grid");
+    const searchBar = document.getElementById("searchBar");
+    const detailPage = document.getElementById("productDetail");
+
+    const detailImage = document.getElementById("detailImage");
+    const detailName = document.getElementById("detailName");
+    const detailPrice = document.getElementById("detailPrice");
+    const detailDescription = document.getElementById("detailDescription");
+    const reviewsContainer = document.getElementById("reviewsContainer");
 
     let allProducts = [];
-    let cart = [];
-
-    cartButton.addEventListener("click", () => {
-      cartDrawer.classList.toggle("open");
-      renderCart();
-    });
 
     async function loadProducts() {
-      productGrid.innerHTML = "<p>Loading products...</p>";
       const snapshot = await getDocs(collection(db, "products"));
       allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       displayProducts(allProducts);
     }
 
     function displayProducts(products) {
-      if (products.length === 0) {
-        productGrid.innerHTML = "<p>No products found.</p>";
-        return;
-      }
-
       productGrid.innerHTML = products.map(p => `
-        <div class="product">
+        <div class="product" data-id="${p.id}">
           <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.name}">
           <h3>${p.name}</h3>
-          <p>Price: $${p.price}</p>
-          <p>${p.description || ''}</p>
-          <button class="add-to-cart" data-id="${p.id}">🛒 Add to Cart</button>
+          <p>$${p.price}</p>
         </div>
       `).join('');
 
-      document.querySelectorAll('.add-to-cart').forEach(btn => {
-        btn.addEventListener('click', () => addToCart(btn.dataset.id));
+      document.querySelectorAll('.product').forEach(prod => {
+        prod.addEventListener('click', () => openProductDetail(prod.dataset.id));
       });
     }
 
-    function addToCart(id) {
+    function openProductDetail(id) {
       const product = allProducts.find(p => p.id === id);
-      const existing = cart.find(item => item.id === id);
-      if (existing) {
-        existing.qty++;
-      } else {
-        cart.push({ ...product, qty: 1 });
-      }
-      renderCart();
+      if (!product) return;
+
+      detailImage.src = product.image || 'https://via.placeholder.com/400';
+      detailName.textContent = product.name;
+      detailPrice.textContent = `$${product.price}`;
+      detailDescription.textContent = product.description || '';
+
+      reviewsContainer.innerHTML = `
+        <div class="review"><strong>Rita:</strong> Love this product! ⭐⭐⭐⭐⭐</div>
+        <div class="review"><strong>Sam:</strong> Great quality for the price! ⭐⭐⭐⭐</div>
+      `;
+
+      detailPage.classList.add("open");
+      window.scrollTo(0,0);
     }
 
-    function renderCart() {
-      if (cart.length === 0) {
-        cartItemsContainer.innerHTML = "<p>Your cart is empty</p>";
-        cartTotalEl.textContent = "0";
-        return;
-      }
-
-      cartItemsContainer.innerHTML = cart.map(item => `
-        <div class="cart-item">
-          <span>${item.name} ($${item.price})</span>
-          <div class="cart-controls">
-            <button onclick="decreaseQty('${item.id}')">-</button>
-            <span>${item.qty}</span>
-            <button onclick="increaseQty('${item.id}')">+</button>
-          </div>
-        </div>
-      `).join('');
-
-      const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-      cartTotalEl.textContent = total.toFixed(2);
-    }
-
-    window.increaseQty = (id) => {
-      const item = cart.find(i => i.id === id);
-      if (item) item.qty++;
-      renderCart();
-    };
-
-    window.decreaseQty = (id) => {
-      const item = cart.find(i => i.id === id);
-      if (item && item.qty > 1) item.qty--;
-      else cart = cart.filter(i => i.id !== id);
-      renderCart();
-    };
+    document.querySelector(".back-btn").addEventListener("click", () => {
+      detailPage.classList.remove("open");
+    });
 
     searchBar.addEventListener("input", () => {
       const keyword = searchBar.value.toLowerCase();
