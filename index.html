@@ -115,41 +115,6 @@
       margin-top: 8px;
     }
 
-    .size-options {
-      display: flex;
-      gap: 10px;
-      margin: 15px 0;
-    }
-
-    .size-btn {
-      padding: 8px 12px;
-      border-radius: 50%;
-      border: 1px solid #ddd;
-      background: white;
-      cursor: pointer;
-    }
-
-    .size-btn.selected {
-      background: #4CAF50;
-      color: white;
-    }
-
-    .qty-control {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 15px 0;
-    }
-
-    .qty-control button {
-      border: none;
-      background: #ddd;
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
-    }
-
     .add-to-bag {
       width: 100%;
       background: #222;
@@ -162,6 +127,7 @@
       margin-top: 10px;
     }
 
+    /* 🔹 Reviews Section */
     .reviews {
       margin-top: 30px;
       padding: 15px;
@@ -175,6 +141,31 @@
 
     .review strong {
       color: #333;
+    }
+
+    .review-form {
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .review-form input,
+    .review-form textarea {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-family: inherit;
+      width: 100%;
+    }
+
+    .review-form button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -203,34 +194,28 @@
       <div class="product-price" id="detailPrice"></div>
       <p id="detailDescription"></p>
 
-      <h4>Select size</h4>
-      <div class="size-options" id="sizeOptions">
-        <button class="size-btn">XS</button>
-        <button class="size-btn">S</button>
-        <button class="size-btn">M</button>
-        <button class="size-btn">L</button>
-        <button class="size-btn">XL</button>
-      </div>
-
-      <div class="qty-control">
-        <button id="minusQty">-</button>
-        <span id="qtyValue">1</span>
-        <button id="plusQty">+</button>
-      </div>
-
       <button class="add-to-bag">Add to Bag</button>
 
       <div class="reviews">
-        <h3>Reviews</h3>
+        <h3>Customer Reviews</h3>
         <div id="reviewsContainer"></div>
+
+        <div class="review-form">
+          <h4>Write a review</h4>
+          <input type="text" id="reviewName" placeholder="Your name">
+          <input type="number" id="reviewRating" min="1" max="5" placeholder="Rating (1-5)">
+          <textarea id="reviewText" rows="3" placeholder="Your review..."></textarea>
+          <button id="submitReview">Submit Review</button>
+        </div>
       </div>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getFirestore, collection, getDocs } 
-      from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { 
+      getFirestore, collection, getDocs, addDoc, doc, query, orderBy, onSnapshot 
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
@@ -247,14 +232,18 @@
     const productGrid = document.getElementById("product-grid");
     const searchBar = document.getElementById("searchBar");
     const detailPage = document.getElementById("productDetail");
-
     const detailImage = document.getElementById("detailImage");
     const detailName = document.getElementById("detailName");
     const detailPrice = document.getElementById("detailPrice");
     const detailDescription = document.getElementById("detailDescription");
     const reviewsContainer = document.getElementById("reviewsContainer");
+    const reviewName = document.getElementById("reviewName");
+    const reviewRating = document.getElementById("reviewRating");
+    const reviewText = document.getElementById("reviewText");
+    const submitReview = document.getElementById("submitReview");
 
     let allProducts = [];
+    let currentProductId = null;
 
     async function loadProducts() {
       const snapshot = await getDocs(collection(db, "products"));
@@ -280,22 +269,65 @@
       const product = allProducts.find(p => p.id === id);
       if (!product) return;
 
+      currentProductId = id;
       detailImage.src = product.image || 'https://via.placeholder.com/400';
       detailName.textContent = product.name;
       detailPrice.textContent = `$${product.price}`;
       detailDescription.textContent = product.description || '';
+      reviewsContainer.innerHTML = "<p>Loading reviews...</p>";
 
-      reviewsContainer.innerHTML = `
-        <div class="review"><strong>Rita:</strong> Love this product! ⭐⭐⭐⭐⭐</div>
-        <div class="review"><strong>Sam:</strong> Great quality for the price! ⭐⭐⭐⭐</div>
-      `;
-
+      loadReviews(id);
       detailPage.classList.add("open");
       window.scrollTo(0,0);
     }
 
     document.querySelector(".back-btn").addEventListener("click", () => {
       detailPage.classList.remove("open");
+    });
+
+    // 🔹 Load reviews from Firestore (realtime)
+    function loadReviews(productId) {
+      const reviewsRef = collection(db, "products", productId, "reviews");
+      const q = query(reviewsRef, orderBy("timestamp", "desc"));
+      
+      onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+          reviewsContainer.innerHTML = "<p>No reviews yet.</p>";
+          return;
+        }
+        reviewsContainer.innerHTML = snapshot.docs.map(doc => {
+          const r = doc.data();
+          return `
+            <div class="review">
+              <strong>${r.name}</strong> ⭐${r.rating}<br>
+              <p>${r.text}</p>
+            </div>
+          `;
+        }).join('');
+      });
+    }
+
+    // 🔹 Submit new review
+    submitReview.addEventListener("click", async () => {
+      const name = reviewName.value.trim();
+      const rating = parseInt(reviewRating.value);
+      const text = reviewText.value.trim();
+      if (!name || !rating || !text) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      const reviewRef = collection(db, "products", currentProductId, "reviews");
+      await addDoc(reviewRef, {
+        name,
+        rating,
+        text,
+        timestamp: new Date()
+      });
+
+      reviewName.value = "";
+      reviewRating.value = "";
+      reviewText.value = "";
     });
 
     searchBar.addEventListener("input", () => {
