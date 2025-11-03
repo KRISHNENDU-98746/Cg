@@ -2,88 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Firestore Store with Login</title>
+  <title>Firestore Store - Login First</title>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
-      background: #f6f7fb;
       margin: 0;
       padding: 0;
+      background: #f6f7fb;
     }
 
-    /* Login Page */
+    /* LOGIN PAGE */
     #loginPage {
+      height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
       background: white;
     }
 
-    #loginPage h2 {
-      font-size: 26px;
-      margin-bottom: 20px;
+    #loginPage h1 {
+      margin-bottom: 25px;
+      font-size: 28px;
     }
 
     .google-btn {
+      background-color: #4285F4;
+      color: white;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #4285F4;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
     }
 
     .google-btn:hover {
-      background: #357ae8;
+      background-color: #357ae8;
     }
 
-    /* Hidden until login */
-    #mainContent {
+    /* MAIN APP */
+    #app {
       display: none;
     }
 
     nav {
-      background-color: #222;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 25px;
+      background: #222;
       color: white;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    .nav-center input {
-      padding: 8px 15px;
-      font-size: 15px;
-      border-radius: 12px;
+    #searchBar {
+      padding: 8px;
+      border-radius: 8px;
       border: none;
       outline: none;
-      width: 250px;
+      width: 200px;
+    }
+
+    #logoutBtn {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
     }
 
     #product-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
       padding: 25px;
-      max-width: 1200px;
-      margin: auto;
     }
 
     .product {
       background: white;
       border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       padding: 10px;
       text-align: center;
-      transition: transform 0.2s ease;
       cursor: pointer;
+      transition: transform 0.2s ease;
     }
 
     .product:hover {
@@ -96,182 +101,36 @@
       object-fit: cover;
       border-radius: 10px;
     }
-
-    /* Product Detail Page */
-    #productDetail {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: white;
-      display: none;
-      flex-direction: column;
-      overflow-y: auto;
-      z-index: 1000;
-    }
-
-    #productDetail.open {
-      display: flex;
-    }
-
-    .detail-header img {
-      width: 100%;
-      height: 400px;
-      object-fit: cover;
-    }
-
-    .detail-body {
-      padding: 20px;
-    }
-
-    .back-btn {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .product-name {
-      font-size: 22px;
-      font-weight: 600;
-    }
-
-    .product-price {
-      font-size: 20px;
-      color: #4CAF50;
-      margin-top: 8px;
-    }
-
-    .add-to-bag {
-      width: 100%;
-      background: #222;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    /* Review Section */
-    .reviews {
-      margin-top: 30px;
-      padding: 15px;
-      border-top: 1px solid #eee;
-    }
-
-    .review {
-      border-bottom: 1px solid #eee;
-      padding: 10px 0;
-    }
-
-    .review strong {
-      color: #333;
-    }
-
-    .review-form {
-      margin-top: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .stars {
-      display: flex;
-      gap: 5px;
-      font-size: 24px;
-      cursor: pointer;
-    }
-
-    .star {
-      color: #ccc;
-      transition: color 0.2s;
-    }
-
-    .star.active {
-      color: gold;
-    }
-
-    .review-form button {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
   </style>
 </head>
 <body>
 
-  <!-- LOGIN PAGE -->
+  <!-- LOGIN SCREEN -->
   <div id="loginPage">
-    <h2>Welcome to Firestore Store</h2>
-    <button class="google-btn" id="googleLogin">
+    <h1>Welcome to Firestore Store 🛍️</h1>
+    <button id="googleLogin" class="google-btn">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
       Sign in with Google
     </button>
   </div>
 
-  <!-- MAIN CONTENT -->
-  <div id="mainContent">
+  <!-- MAIN APP -->
+  <div id="app">
     <nav>
-      <h2>Firestore Store</h2>
-      <div class="nav-center">
-        <input type="text" id="searchBar" placeholder="Search products...">
-      </div>
-      <div id="userInfo"></div>
+      <div>Firestore Store</div>
+      <input type="text" id="searchBar" placeholder="Search products...">
+      <button id="logoutBtn">Logout</button>
     </nav>
 
     <div id="product-grid"><p>Loading products...</p></div>
-
-    <div id="productDetail">
-      <div class="detail-header">
-        <button class="back-btn">← Back</button>
-        <img id="detailImage" src="">
-      </div>
-      <div class="detail-body">
-        <div class="product-name" id="detailName"></div>
-        <div class="product-price" id="detailPrice"></div>
-        <p id="detailDescription"></p>
-
-        <button class="add-to-bag">Add to Bag</button>
-
-        <div class="reviews">
-          <h3>Customer Reviews</h3>
-          <div id="reviewsContainer"></div>
-
-          <div class="review-form">
-            <h4>Write a review</h4>
-            <div class="stars" id="starRating">
-              <span class="star" data-value="1">★</span>
-              <span class="star" data-value="2">★</span>
-              <span class="star" data-value="3">★</span>
-              <span class="star" data-value="4">★</span>
-              <span class="star" data-value="5">★</span>
-            </div>
-
-            <textarea id="reviewText" rows="3" placeholder="Your review..."></textarea>
-            <button id="submitReview">Submit Review</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-    import { getFirestore, collection, getDocs, addDoc, doc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+    // 🔥 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
       authDomain: "thelong-6274a.firebaseapp.com",
@@ -287,153 +146,55 @@
     const provider = new GoogleAuthProvider();
 
     const loginPage = document.getElementById("loginPage");
-    const mainContent = document.getElementById("mainContent");
+    const mainApp = document.getElementById("app");
     const googleLogin = document.getElementById("googleLogin");
-    const userInfo = document.getElementById("userInfo");
-    const productGrid = document.getElementById("product-grid");
+    const logoutBtn = document.getElementById("logoutBtn");
     const searchBar = document.getElementById("searchBar");
-    const detailPage = document.getElementById("productDetail");
-    const detailImage = document.getElementById("detailImage");
-    const detailName = document.getElementById("detailName");
-    const detailPrice = document.getElementById("detailPrice");
-    const detailDescription = document.getElementById("detailDescription");
-    const reviewsContainer = document.getElementById("reviewsContainer");
-    const reviewText = document.getElementById("reviewText");
-    const submitReview = document.getElementById("submitReview");
-    const stars = document.querySelectorAll(".star");
+    const productGrid = document.getElementById("product-grid");
 
     let allProducts = [];
-    let currentProductId = null;
-    let selectedRating = 0;
-    let currentUser = null;
 
-    // Handle star click
-    stars.forEach(star => {
-      star.addEventListener("click", () => {
-        selectedRating = parseInt(star.dataset.value);
-        updateStarUI();
-      });
-    });
-
-    function updateStarUI() {
-      stars.forEach(star => {
-        const val = parseInt(star.dataset.value);
-        star.classList.toggle("active", val <= selectedRating);
-      });
-    }
-
-    // Login with Google
+    // 🔹 Google Login
     googleLogin.addEventListener("click", async () => {
       await signInWithPopup(auth, provider);
     });
 
-    // Auth state change
-    onAuthStateChanged(auth, user => {
+    // 🔹 Auth State Change
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        currentUser = user;
         loginPage.style.display = "none";
-        mainContent.style.display = "block";
-        userInfo.innerHTML = `${user.displayName} <button onclick="logout()">Logout</button>`;
+        mainApp.style.display = "block";
         loadProducts();
       } else {
         loginPage.style.display = "flex";
-        mainContent.style.display = "none";
+        mainApp.style.display = "none";
       }
     });
 
-    window.logout = async () => {
+    // 🔹 Logout
+    logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
-    };
+    });
 
+    // 🔹 Load Products from Firestore
     async function loadProducts() {
       const snapshot = await getDocs(collection(db, "products"));
       allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       displayProducts(allProducts);
     }
 
+    // 🔹 Display Products
     function displayProducts(products) {
       productGrid.innerHTML = products.map(p => `
-        <div class="product" data-id="${p.id}">
-          <img src="${p.image || 'https://via.placeholder.com/200'}" alt="${p.name}">
+        <div class="product">
+          <img src="${p.image || 'https://via.placeholder.com/200'}">
           <h3>${p.name}</h3>
           <p>$${p.price}</p>
         </div>
       `).join('');
-
-      document.querySelectorAll('.product').forEach(prod => {
-        prod.addEventListener('click', () => openProductDetail(prod.dataset.id));
-      });
     }
 
-    function openProductDetail(id) {
-      const product = allProducts.find(p => p.id === id);
-      if (!product) return;
-
-      currentProductId = id;
-      detailImage.src = product.image || 'https://via.placeholder.com/400';
-      detailName.textContent = product.name;
-      detailPrice.textContent = `$${product.price}`;
-      detailDescription.textContent = product.description || '';
-      reviewsContainer.innerHTML = "<p>Loading reviews...</p>";
-
-      loadReviews(id);
-      detailPage.classList.add("open");
-      window.scrollTo(0,0);
-    }
-
-    document.querySelector(".back-btn").addEventListener("click", () => {
-      detailPage.classList.remove("open");
-    });
-
-    // Load reviews
-    function loadReviews(productId) {
-      const reviewsRef = collection(db, "products", productId, "reviews");
-      const q = query(reviewsRef, orderBy("timestamp", "desc"));
-      
-      onSnapshot(q, (snapshot) => {
-        if (snapshot.empty) {
-          reviewsContainer.innerHTML = "<p>No reviews yet.</p>";
-          return;
-        }
-        reviewsContainer.innerHTML = snapshot.docs.map(doc => {
-          const r = doc.data();
-          const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
-          return `
-            <div class="review">
-              <strong>${r.name}</strong> <span style="color:gold">${stars}</span><br>
-              <p>${r.text}</p>
-            </div>
-          `;
-        }).join('');
-      });
-    }
-
-    // Submit review
-    submitReview.addEventListener("click", async () => {
-      if (!currentUser) {
-        alert("Please log in to write a review.");
-        return;
-      }
-
-      const text = reviewText.value.trim();
-      if (!text || selectedRating === 0) {
-        alert("Please select a rating and write a review.");
-        return;
-      }
-
-      const reviewRef = collection(db, "products", currentProductId, "reviews");
-      await addDoc(reviewRef, {
-        name: currentUser.displayName,
-        rating: selectedRating,
-        text,
-        timestamp: new Date()
-      });
-
-      reviewText.value = "";
-      selectedRating = 0;
-      updateStarUI();
-    });
-
+    // 🔹 Search Function
     searchBar.addEventListener("input", () => {
       const keyword = searchBar.value.toLowerCase();
       const filtered = allProducts.filter(p => p.name.toLowerCase().includes(keyword));
@@ -443,3 +204,4 @@
   </script>
 </body>
 </html>
+
