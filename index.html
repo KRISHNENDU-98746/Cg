@@ -1,68 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TheLong eCommerce (Firebase)</title>
+  <meta charset="UTF-8">
+  <title>T-Shirt Store</title>
   <style>
-    body { font-family: Poppins, sans-serif; background: #f5f7fa; margin: 0; }
-    header { background: #007bff; color: white; text-align: center; padding: 15px; font-size: 22px; }
-    .container { width: 90%; max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    input, button, textarea { width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 15px; }
-    button { background: #007bff; color: white; font-weight: bold; border: none; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    .product { text-align: center; margin-top: 15px; }
-    .product img { width: 100%; border-radius: 10px; }
-    .cart ul { list-style: none; padding: 0; }
-    .cart li { background: #eef3ff; margin: 5px 0; padding: 8px; border-radius: 6px; }
-    .success { background: #d4edda; color: #155724; text-align: center; padding: 10px; margin-top: 15px; border-radius: 8px; }
+    body {
+      font-family: Poppins, sans-serif;
+      margin: 0; padding: 0;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    header {
+      background: #222; color: white;
+      padding: 15px; font-size: 20px;
+    }
+    .btn {
+      background: #4CAF50; color: white;
+      border: none; padding: 10px 20px;
+      border-radius: 6px; cursor: pointer;
+    }
+    .product {
+      background: white; width: 250px;
+      margin: 20px auto; padding: 15px;
+      border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    img { width: 100%; border-radius: 8px; }
+    .cart { background: #fff; margin: 20px; padding: 20px; border-radius: 10px; }
+    input, textarea {
+      width: 90%; padding: 10px; margin: 8px 0;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
   </style>
 </head>
 <body>
-  <header>🛍️ TheLong eCommerce Store</header>
+  <header>👕 T-Shirt Store</header>
 
-  <div id="authDiv" class="container">
-    <h3>Login or Sign Up</h3>
-    <input id="email" type="email" placeholder="Email" required />
-    <input id="password" type="password" placeholder="Password" required />
-    <button onclick="signup()">Sign Up</button>
-    <button onclick="login()">Login</button>
+  <div id="userSection">
+    <button id="googleLogin" class="btn">Login with Google</button>
+    <p id="userInfo"></p>
   </div>
 
-  <div id="shopDiv" class="container" style="display:none;">
-    <h2>Welcome, <span id="userEmail"></span></h2>
-    <button onclick="logout()">Logout</button>
+  <div id="store" style="display:none;">
     <div class="product">
-      <img src="https://i.imgur.com/UYiroys.jpg" alt="T-shirt" />
-      <h3>Classic Cotton T-Shirt</h3>
-      <p>₹499</p>
-      <button onclick="addToCart('Classic Cotton T-Shirt', 499)">Add to Cart</button>
+      <img src="https://i.imgur.com/YZKQZQF.png" alt="T-shirt">
+      <h3>Classic White T-Shirt</h3>
+      <p>Price: $20</p>
+      <button class="btn" id="addToCartBtn">Add to Cart</button>
     </div>
 
-    <div class="cart">
-      <h3>Your Cart</h3>
-      <ul id="cartList"></ul>
-      <h3 id="totalPrice">Total: ₹0</h3>
-    </div>
-
-    <div class="checkout">
-      <h3>Checkout</h3>
-      <textarea id="address" placeholder="Enter your delivery address..."></textarea>
-      <button onclick="checkout()">Place Order</button>
-      <div id="msg"></div>
+    <div id="cart" class="cart" style="display:none;">
+      <h3>🛍 Your Cart</h3>
+      <div id="cartItems"></div>
+      <h4>Total: $<span id="total">0</span></h4>
+      <textarea id="address" placeholder="Enter your shipping address..."></textarea><br>
+      <button class="btn" id="checkoutBtn">Checkout</button>
     </div>
   </div>
 
   <script type="module">
-    // ================= Firebase Setup =================
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+    // === Import Firebase SDKs ===
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
+    // === Firebase Configuration ===
     const firebaseConfig = {
       apiKey: "AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
       authDomain: "thelong-6274a.firebaseapp.com",
-      databaseURL: "https://thelong-6274a-default-rtdb.firebaseio.com",
       projectId: "thelong-6274a",
       storageBucket: "thelong-6274a.firebasestorage.app",
       messagingSenderId: "729094241594",
@@ -70,99 +74,81 @@
       measurementId: "G-DPSPS3MDBF"
     };
 
+    // === Initialize Firebase ===
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-    // ================= Auth Logic =================
-    const authDiv = document.getElementById("authDiv");
-    const shopDiv = document.getElementById("shopDiv");
-    const userEmail = document.getElementById("userEmail");
+    // === UI Elements ===
+    const googleLogin = document.getElementById('googleLogin');
+    const userInfo = document.getElementById('userInfo');
+    const store = document.getElementById('store');
+    const cartDiv = document.getElementById('cart');
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const cartItems = document.getElementById('cartItems');
+    const totalSpan = document.getElementById('total');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const addressBox = document.getElementById('address');
 
-    async function signup() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        alert("Signup successful! Please log in.");
-      } catch (err) {
-        alert(err.message);
-      }
-    }
-
-    async function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        alert("Login successful!");
-      } catch (err) {
-        alert(err.message);
-      }
-    }
-
-    async function logout() {
-      await signOut(auth);
-      alert("Logged out!");
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        authDiv.style.display = "none";
-        shopDiv.style.display = "block";
-        userEmail.textContent = user.email;
-      } else {
-        authDiv.style.display = "block";
-        shopDiv.style.display = "none";
-      }
-    });
-
-    // ================= Cart & Checkout =================
+    let currentUser = null;
     let cart = [];
 
-    window.addToCart = function (name, price) {
-      cart.push({ name, price });
-      renderCart();
-      alert("Added to cart!");
+    // === Google Login ===
+    googleLogin.onclick = async () => {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        currentUser = result.user;
+        userInfo.innerHTML = `Welcome, ${currentUser.displayName} <br> <button class="btn" id="logoutBtn">Logout</button>`;
+        googleLogin.style.display = 'none';
+        store.style.display = 'block';
+
+        document.getElementById('logoutBtn').onclick = async () => {
+          await signOut(auth);
+          location.reload();
+        };
+      } catch (error) {
+        alert(error.message);
+      }
     };
 
-    function renderCart() {
-      const cartList = document.getElementById("cartList");
-      const totalPrice = document.getElementById("totalPrice");
-      cartList.innerHTML = "";
+    // === Add to Cart ===
+    addToCartBtn.onclick = () => {
+      cart.push({ name: "Classic White T-Shirt", price: 20 });
+      updateCart();
+    };
+
+    function updateCart() {
+      cartDiv.style.display = 'block';
+      cartItems.innerHTML = "";
       let total = 0;
       cart.forEach((item) => {
+        cartItems.innerHTML += `<p>${item.name} - $${item.price}</p>`;
         total += item.price;
-        const li = document.createElement("li");
-        li.textContent = `${item.name} - ₹${item.price}`;
-        cartList.appendChild(li);
       });
-      totalPrice.textContent = "Total: ₹" + total;
+      totalSpan.textContent = total;
     }
 
-    window.checkout = async function () {
-      const address = document.getElementById("address").value.trim();
-      if (cart.length === 0) return alert("Cart is empty!");
+    // === Checkout & Save Order ===
+    checkoutBtn.onclick = async () => {
+      const address = addressBox.value.trim();
       if (!address) return alert("Please enter your address!");
-
-      const user = auth.currentUser;
-      if (!user) return alert("You must be logged in!");
+      if (!currentUser) return alert("Please login first!");
 
       try {
-        await addDoc(collection(db, "orders"), {
-          user: user.email,
-          address: address,
+        await setDoc(doc(db, "orders", currentUser.uid), {
+          name: currentUser.displayName,
+          email: currentUser.email,
           cart: cart,
-          total: cart.reduce((sum, i) => sum + i.price, 0),
-          date: new Date().toLocaleString()
+          address: address,
+          time: new Date().toISOString()
         });
-        document.getElementById("msg").innerHTML =
-          '<div class="success">✅ Order placed successfully!</div>';
+        alert("✅ Order placed successfully!");
         cart = [];
-        renderCart();
-        document.getElementById("address").value = "";
+        updateCart();
+        addressBox.value = "";
       } catch (err) {
-        alert("Error saving order: " + err.message);
+        alert("Error: " + err.message);
       }
     };
   </script>
