@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Firestore Store (Persistent Cart)</title>
+<title>Firestore Store (Persistent Cart + Checkout)</title>
 <style>
   body {font-family:'Poppins',sans-serif;margin:0;padding:0;background:#f6f7fb;}
   #loginPage{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;}
@@ -30,6 +30,20 @@
   .stars {display:flex;gap:5px;margin:10px 0;}
   .star {font-size:24px;color:#ccc;cursor:pointer;}
   .star.active {color:#FFD700;}
+
+  /* CHECKOUT POPUP */
+  #checkoutPopup {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 20;
+  }
+  .checkout-box {
+    background: white; padding: 20px; border-radius: 10px; width: 400px; max-height: 90vh; overflow-y: auto;
+  }
+  .checkout-box h2 {margin-top:0;}
+  .checkout-box input {width: 100%; padding: 8px; margin: 6px 0; border-radius: 6px; border: 1px solid #ccc;}
+  .checkout-box button {width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;cursor:pointer;}
+  #closeCheckout {background:#f44336;color:white;}
+  #placeOrder {background:#4CAF50;color:white;}
 </style>
 </head>
 <body>
@@ -84,7 +98,24 @@
   <h2>Your Cart</h2>
   <div id="cartItems"></div>
   <p class="cart-total">Total: ₹<span id="cartTotal">0</span></p>
-  <button class="checkout-btn">Checkout</button>
+  <button class="checkout-btn" id="checkoutBtn">Checkout</button>
+</div>
+
+<!-- CHECKOUT POPUP -->
+<div id="checkoutPopup">
+  <div class="checkout-box">
+    <h2>Shipping Address</h2>
+    <input id="rName" placeholder="Recipient Name">
+    <input id="rStreet1" placeholder="Street Address 1">
+    <input id="rStreet2" placeholder="Street Address 2 (Optional)">
+    <input id="rCity" placeholder="City">
+    <input id="rState" placeholder="State/Province">
+    <input id="rZip" placeholder="Zip/Postal Code">
+    <input id="rCountry" placeholder="Country">
+    <input id="rPhone" placeholder="Phone Number">
+    <button id="placeOrder">Place Order</button>
+    <button id="closeCheckout">Cancel</button>
+  </div>
 </div>
 
 <script type="module">
@@ -119,6 +150,9 @@ const cartItems=document.getElementById("cartItems");
 const cartTotal=document.getElementById("cartTotal");
 const backBtn=document.getElementById("backBtn");
 const stars=document.querySelectorAll(".star");
+const checkoutPopup=document.getElementById("checkoutPopup");
+const placeOrder=document.getElementById("placeOrder");
+const closeCheckout=document.getElementById("closeCheckout");
 
 let allProducts=[],cart=[],currentProduct=null,currentUser=null,currentRating=0;
 
@@ -211,6 +245,28 @@ async function loadCart(){
   updateCart();
 }
 
+/* CHECKOUT */
+document.getElementById("checkoutBtn").onclick=()=>checkoutPopup.style.display="flex";
+closeCheckout.onclick=()=>checkoutPopup.style.display="none";
+
+placeOrder.onclick=async()=>{
+  const order={
+    userId:currentUser.uid,
+    userName:currentUser.displayName,
+    address:{
+      name:rName.value,street1:rStreet1.value,street2:rStreet2.value,
+      city:rCity.value,state:rState.value,zip:rZip.value,country:rCountry.value,phone:rPhone.value
+    },
+    items:cart,
+    total:cart.reduce((s,i)=>s+i.price*i.qty,0),
+    createdAt:serverTimestamp()
+  };
+  await addDoc(collection(db,"orders"),order);
+  alert("✅ Order placed successfully!");
+  cart=[];await saveCart();updateCart();
+  checkoutPopup.style.display="none";
+};
+
 /* SEARCH */
 searchBar.oninput=()=>{const k=searchBar.value.toLowerCase();displayProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k)));};
 
@@ -242,4 +298,3 @@ document.getElementById("submitReview").onclick=async()=>{
 </script>
 </body>
 </html>
-
