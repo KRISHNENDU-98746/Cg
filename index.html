@@ -196,25 +196,7 @@ onAuthStateChanged(auth, async (user) => {
     mainApp.style.display = "block";
     await loadProducts();
     await loadCart();
-    await loadWallet();
-<script type="module">
-  // 🪙 Wallet Display Setup
-const walletDisplay = document.createElement("div");
-walletDisplay.style.marginRight = "15px";
-walletDisplay.style.fontWeight = "bold";
-document.querySelector("nav div").after(walletDisplay);
-
-// 🧾 Wallet Load Function
-async function loadWallet() {
-  if (!currentUser) return;
-  const ref = doc(db, "users", currentUser.uid);
-  const snap = await getDoc(ref);
-  let balance = 0;
-  if (snap.exists()) balance = snap.data().balance || 0;
-  else await setDoc(ref, { balance: 0 });
-  walletDisplay.textContent = `💰 Wallet: ₹${balance}`;
-}
-<script type="module">
+    
   } else {
     currentUser = null;
     mainApp.style.display = "none";
