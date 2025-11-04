@@ -191,6 +191,21 @@ function displayProducts(list){
       <button class="add-btn" onclick="event.stopPropagation();addToCart('${p.id}','${p.name}',${p.price},'${p.image}')">Add to Cart</button>
     </div>`).join('');
 }
+
+/* FIXED SEARCH BAR */
+searchBar.addEventListener("input", () => {
+  const keyword = searchBar.value.trim().toLowerCase();
+  if (!keyword) {
+    displayProducts(allProducts);
+    return;
+  }
+  const filtered = allProducts.filter(p =>
+    (p.name && p.name.toLowerCase().includes(keyword)) ||
+    (p.description && p.description.toLowerCase().includes(keyword))
+  );
+  displayProducts(filtered);
+});
+
 window.viewProduct=async(id)=>{
   const docRef=doc(db,"products",id);
   const snap=await getDoc(docRef);
@@ -204,6 +219,7 @@ window.viewProduct=async(id)=>{
   productDetails.style.display="block";
   loadReviews(id);
 };
+
 backBtn.onclick=()=>{productDetails.style.display="none";productGrid.style.display="grid";};
 
 /* STAR RATING */
@@ -267,9 +283,6 @@ placeOrder.onclick=async()=>{
   checkoutPopup.style.display="none";
 };
 
-/* SEARCH */
-searchBar.oninput=()=>{const k=searchBar.value.toLowerCase();displayProducts(allProducts.filter(p=>p.name.toLowerCase().includes(k)));};
-
 /* REVIEWS */
 async function loadReviews(pid){
   const snap=await getDocs(query(collection(db,"reviews"),where("productId","==",pid)));
@@ -280,6 +293,7 @@ async function loadReviews(pid){
     return `<div class='review'><b>${d.userName}</b> (${stars}): ${d.text}</div>`;
   }).join('');
 }
+
 document.getElementById("submitReview").onclick=async()=>{
   const text=document.getElementById("reviewInput").value.trim();
   if(!text)return alert("Write something first!");
