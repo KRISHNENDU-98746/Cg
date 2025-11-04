@@ -2,52 +2,92 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Firestore Store + Wallet</title>
+<title>Firestore Store (Gift Card + Persistent Cart + Checkout)</title>
 <style>
-  body{font-family:'Poppins',sans-serif;margin:0;background:#f6f7fb;}
+  body {font-family:'Poppins',sans-serif;margin:0;padding:0;background:#f6f7fb;}
+  #loginPage{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;top:0;left:0;right:0;bottom:0;background:#f6f7fb;z-index:100;}
+  .google-btn{background:#4285F4;color:white;padding:10px 18px;border:none;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;gap:10px;}
+  .google-btn:hover{background:#357ae8;}
   nav{background:#222;color:white;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;}
   nav input{padding:6px 10px;border-radius:8px;border:none;outline:none;}
   nav button{border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
   #logoutBtn{background:#f44336;color:white;}
   #cartBtn{background:#4CAF50;color:white;}
-  #walletArea{display:flex;align-items:center;gap:8px;font-weight:bold;}
-  #addGiftBtn{background:none;border:none;color:#4CAF50;font-size:20px;cursor:pointer;}
-  #product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:20px;justify-items:center;}
+  #product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;padding:20px;}
   .product{background:white;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);padding:10px;text-align:center;transition:transform .2s;cursor:pointer;}
   .product:hover{transform:translateY(-3px);}
   .product img{width:100%;height:180px;object-fit:cover;border-radius:8px;}
   .add-btn{background:#4CAF50;color:white;border:none;padding:6px 12px;border-radius:8px;margin-top:6px;cursor:pointer;}
+  #productDetails{display:none;max-width:800px;margin:20px auto;background:white;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+  #productDetails img{width:100%;border-radius:8px;height:350px;object-fit:cover;}
+  #backBtn{margin-top:10px;background:#555;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;}
+  textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;resize:none;}
   #cartDrawer{position:fixed;top:0;right:-400px;width:350px;height:100%;background:white;box-shadow:-2px 0 8px rgba(0,0,0,0.2);transition:right .3s;padding:20px;overflow-y:auto;z-index:10;}
   #cartDrawer.active{right:0;}
   .cart-item{display:flex;align-items:center;justify-content:space-between;margin:10px 0;border-bottom:1px solid #eee;padding-bottom:8px;}
   .cart-total{font-weight:bold;margin-top:20px;}
   .checkout-btn{width:100%;background:#4CAF50;color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;margin-top:10px;}
-  #checkoutPopup,#giftPopup{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;z-index:20;}
-  .popup-box{background:white;padding:20px;border-radius:10px;width:400px;}
-  .popup-box input{width:100%;padding:8px;margin-top:10px;border:1px solid #ccc;border-radius:6px;}
-  .popup-box button{width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;cursor:pointer;}
-  #closeGift,#closeCheckout{background:#f44336;color:white;}
-  #redeemGift,#placeOrder{background:#4CAF50;color:white;}
+  .stars {display:flex;gap:5px;margin:10px 0;}
+  .star {font-size:24px;color:#ccc;cursor:pointer;}
+  .star.active {color:#FFD700;}
+  #checkoutPopup {position: fixed; top: 0; left: 0; right: 0; bottom: 0;background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 20;}
+  .checkout-box {background: white; padding: 20px; border-radius: 10px; width: 400px; max-height: 90vh; overflow-y: auto;}
+  .checkout-box h2 {margin-top:0;}
+  .checkout-box input {width: 100%; padding: 8px; margin: 6px 0; border-radius: 6px; border: 1px solid #ccc;}
+  .checkout-box button {width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;cursor:pointer;}
+  #closeCheckout {background:#f44336;color:white;}
+  #placeOrder {background:#4CAF50;color:white;}
+  #giftCardBox{margin-top:15px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fafafa;}
+  #giftCardBox input{width:calc(100% - 110px);display:inline-block;}
+  #redeemGift{background:#2196F3;color:white;width:100px;margin-left:5px;}
 </style>
 </head>
 <body>
 
-<!-- NAVIGATION -->
-<nav>
-  <div>Firestore Store</div>
-  <input type="text" id="searchBar" placeholder="Search products...">
-  <div id="walletArea">
-    <span id="walletDisplay">💰 Wallet: ₹0</span>
-    <button id="addGiftBtn">＋</button>
-  </div>
-  <div>
-    <button id="cartBtn">🛒 Cart</button>
-    <button id="logoutBtn">Logout</button>
-  </div>
-</nav>
+<!-- LOGIN -->
+<div id="loginPage">
+  <h1>Welcome to Firestore Store 🛍️</h1>
+  <button id="googleLogin" class="google-btn">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Sign in with Google
+  </button>
+</div>
 
-<!-- PRODUCT GRID -->
-<div id="product-grid"></div>
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+  <nav>
+    <div>Firestore Store</div>
+    <input type="text" id="searchBar" placeholder="Search products...">
+    <div>
+      <button id="cartBtn">🛒 Cart</button>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </nav>
+
+  <div id="product-grid"></div>
+
+  <!-- PRODUCT DETAILS -->
+  <div id="productDetails">
+    <button id="backBtn">⬅ Back</button>
+    <img id="pImg">
+    <h2 id="pName"></h2>
+    <p id="pPrice"></p>
+    <p id="pDesc"></p>
+    <button id="addToCartDetail" class="add-btn">Add to Cart</button>
+
+    <h3>Customer Reviews</h3>
+    <div id="reviews"></div>
+    <h4>Write a Review</h4>
+    <div class="stars" id="ratingStars">
+      <span class="star" data-value="1">★</span>
+      <span class="star" data-value="2">★</span>
+      <span class="star" data-value="3">★</span>
+      <span class="star" data-value="4">★</span>
+      <span class="star" data-value="5">★</span>
+    </div>
+    <textarea id="reviewInput" rows="3" placeholder="Write your review..."></textarea>
+    <button id="submitReview">Submit Review</button>
+  </div>
+</div>
 
 <!-- CART DRAWER -->
 <div id="cartDrawer">
@@ -59,35 +99,33 @@
 
 <!-- CHECKOUT POPUP -->
 <div id="checkoutPopup">
-  <div class="popup-box">
+  <div class="checkout-box">
     <h2>Shipping Address</h2>
     <input id="rName" placeholder="Recipient Name">
     <input id="rStreet1" placeholder="Street Address 1">
+    <input id="rStreet2" placeholder="Street Address 2 (Optional)">
     <input id="rCity" placeholder="City">
     <input id="rState" placeholder="State/Province">
     <input id="rZip" placeholder="Zip/Postal Code">
     <input id="rCountry" placeholder="Country">
     <input id="rPhone" placeholder="Phone Number">
+
+    <div id="giftCardBox">
+      <h3>🎁 Redeem Gift Card</h3>
+      <input id="giftCode" placeholder="Enter gift card code">
+      <button id="redeemGift">Redeem</button>
+      <p id="giftMsg" style="font-size:14px;color:green;"></p>
+    </div>
+
     <button id="placeOrder">Place Order</button>
     <button id="closeCheckout">Cancel</button>
-  </div>
-</div>
-
-<!-- GIFT REDEEM POPUP -->
-<div id="giftPopup">
-  <div class="popup-box">
-    <h2>🎁 Redeem Gift Card</h2>
-    <input id="giftCode" placeholder="Enter gift card code">
-    <button id="redeemGift">Redeem</button>
-    <button id="closeGift">Cancel</button>
-    <p id="giftMsg" style="font-size:14px;color:green;"></p>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, query, where, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
@@ -103,109 +141,164 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
+const loginPage=document.getElementById("loginPage");
+const mainApp=document.getElementById("app");
+const googleLogin=document.getElementById("googleLogin");
+const logoutBtn=document.getElementById("logoutBtn");
 const productGrid=document.getElementById("product-grid");
-const walletDisplay=document.getElementById("walletDisplay");
-const addGiftBtn=document.getElementById("addGiftBtn");
-const giftPopup=document.getElementById("giftPopup");
-const giftCode=document.getElementById("giftCode");
-const giftMsg=document.getElementById("giftMsg");
-const redeemGift=document.getElementById("redeemGift");
-const closeGift=document.getElementById("closeGift");
-const checkoutPopup=document.getElementById("checkoutPopup");
+const searchBar=document.getElementById("searchBar");
+const productDetails=document.getElementById("productDetails");
+const cartBtn=document.getElementById("cartBtn");
 const cartDrawer=document.getElementById("cartDrawer");
 const cartItems=document.getElementById("cartItems");
 const cartTotal=document.getElementById("cartTotal");
+const backBtn=document.getElementById("backBtn");
+const stars=document.querySelectorAll(".star");
+const checkoutPopup=document.getElementById("checkoutPopup");
+const placeOrder=document.getElementById("placeOrder");
+const closeCheckout=document.getElementById("closeCheckout");
+const redeemGift=document.getElementById("redeemGift");
+const giftCode=document.getElementById("giftCode");
+const giftMsg=document.getElementById("giftMsg");
 
-let allProducts=[],cart=[],currentUser=null,walletBalance=0;
+let allProducts=[],cart=[],currentProduct=null,currentUser=null,currentRating=0;
+let giftDiscount=0;
 
-// --- AUTH ---
-onAuthStateChanged(auth, async (user)=>{
-  if(user){ currentUser=user; await loadProducts(); await loadCart(); await loadWallet(); }
-  else signInWithPopup(auth,provider);
+/* LOGIN */
+googleLogin.onclick=()=>signInWithPopup(auth,provider);
+logoutBtn.onclick=()=>signOut(auth);
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    loginPage.style.display = "none";
+    mainApp.style.display = "block";
+    await loadProducts();
+    await loadCart();
+  } else {
+    currentUser = null;
+    mainApp.style.display = "none";
+    loginPage.style.display = "flex";
+  }
 });
-document.getElementById("logoutBtn").onclick=()=>signOut(auth);
 
-// --- LOAD PRODUCTS ---
+/* LOAD PRODUCTS */
 async function loadProducts(){
   const snap=await getDocs(collection(db,"products"));
   allProducts=snap.docs.map(d=>({id:d.id,...d.data()}));
   displayProducts(allProducts);
 }
+
 function displayProducts(list){
   productGrid.innerHTML="";
   list.forEach(p=>{
     const div=document.createElement("div");
     div.className="product";
-    div.innerHTML=`<img src="${p.image||'https://via.placeholder.com/200'}"><h3>${p.name}</h3><p>₹${p.price}</p><button class="add-btn">Add to Cart</button>`;
-    div.querySelector(".add-btn").onclick=(e)=>{e.stopPropagation();addToCart(p.id,p.name,p.price,p.image);}
+    div.innerHTML=`<img src="${p.image||'https://via.placeholder.com/200'}">
+                   <h3>${p.name}</h3><p>₹${p.price}</p>
+                   <button class="add-btn">Add to Cart</button>`;
+    div.querySelector(".add-btn").addEventListener("click",e=>{
+      e.stopPropagation();addToCart(p.id,p.name,p.price,p.image);
+    });
+    div.addEventListener("click",()=>viewProduct(p.id));
     productGrid.appendChild(div);
   });
 }
 
-// --- SEARCH ---
-document.getElementById("searchBar").oninput=()=>{
-  const key=searchBar.value.toLowerCase();
-  const filtered=allProducts.filter(p=>p.name.toLowerCase().includes(key));
+/* SEARCH */
+searchBar.addEventListener("input",()=>{
+  const key=searchBar.value.trim().toLowerCase();
+  const filtered=allProducts.filter(p=>
+    p.name.toLowerCase().includes(key) ||
+    (p.description||"").toLowerCase().includes(key)
+  );
   displayProducts(filtered);
-};
+});
 
-// --- CART ---
+/* PRODUCT DETAILS */
+async function viewProduct(id){
+  const ref=doc(db,"products",id);
+  const snap=await getDoc(ref);
+  if(!snap.exists())return;
+  const p=snap.data();currentProduct={id,...p};
+  document.getElementById("pImg").src=p.image||"https://via.placeholder.com/200";
+  document.getElementById("pName").textContent=p.name;
+  document.getElementById("pPrice").textContent=`Price: ₹${p.price}`;
+  document.getElementById("pDesc").textContent=p.description||"";
+  productGrid.style.display="none";
+  productDetails.style.display="block";
+  loadReviews(id);
+}
+backBtn.onclick=()=>{productDetails.style.display="none";productGrid.style.display="grid";};
+
+/* STAR RATING */
+stars.forEach(s=>{
+  s.onclick=()=>{currentRating=s.dataset.value;stars.forEach(st=>st.classList.toggle("active",st.dataset.value<=currentRating));};
+});
+
+/* CART */
 async function addToCart(id,name,price,image){
   const ex=cart.find(i=>i.id===id);
-  if(ex)ex.qty++; else cart.push({id,name,price,image,qty:1});
+  if(ex)ex.qty++;else cart.push({id,name,price,image,qty:1});
   await saveCart();updateCart();
 }
 function updateCart(){
-  cartItems.innerHTML=cart.map(i=>`<div class="cart-item"><span>${i.name} x${i.qty}</span><span>₹${i.price*i.qty}</span></div>`).join("");
-  cartTotal.textContent=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  cartItems.innerHTML=cart.map(i=>`<div class="cart-item"><span>${i.name} x${i.qty}</span><span>₹${(i.price*i.qty).toFixed(2)}</span></div>`).join("");
+  cartTotal.textContent=cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
 }
-document.getElementById("cartBtn").onclick=()=>cartDrawer.classList.toggle("active");
+cartBtn.onclick=()=>cartDrawer.classList.toggle("active");
 async function saveCart(){if(currentUser)await setDoc(doc(db,"carts",currentUser.uid),{items:cart});}
-async function loadCart(){const snap=await getDoc(doc(db,"carts",currentUser.uid));cart=snap.exists()?snap.data().items:[];updateCart();}
+async function loadCart(){if(!currentUser)return;const snap=await getDoc(doc(db,"carts",currentUser.uid));cart=snap.exists()?snap.data().items:[];updateCart();}
 
-// --- WALLET ---
-async function loadWallet(){
-  const ref=doc(db,"users",currentUser.uid);
-  const snap=await getDoc(ref);
-  if(snap.exists())walletBalance=snap.data().balance||0;
-  else{await setDoc(ref,{balance:0});walletBalance=0;}
-  walletDisplay.textContent=`💰 Wallet: ₹${walletBalance}`;
-}
-
-// --- GIFT REDEEM (Adds to Wallet) ---
-addGiftBtn.onclick=()=>giftPopup.style.display="flex";
-closeGift.onclick=()=>giftPopup.style.display="none";
+/* GIFT REDEEM */
 redeemGift.onclick=async()=>{
   const code=giftCode.value.trim();
   if(!code)return alert("Enter gift card code!");
-  const ref=doc(db,"giftcards",code);
-  const snap=await getDoc(ref);
+  const snap=await getDoc(doc(db,"giftcards",code));
   if(!snap.exists())return giftMsg.textContent="❌ Invalid code!";
   const data=snap.data();
   if(data.redeemed)return giftMsg.textContent="⚠️ Already used!";
-  const amount=data.amount||0;
-  walletBalance+=amount;
-  await updateDoc(ref,{redeemed:true,usedBy:currentUser.uid});
-  await updateDoc(doc(db,"users",currentUser.uid),{balance:walletBalance});
-  walletDisplay.textContent=`💰 Wallet: ₹${walletBalance}`;
-  giftMsg.textContent=`🎉 ₹${amount} added to wallet!`;
+  giftDiscount=data.amount||0;
+  await updateDoc(doc(db,"giftcards",code),{redeemed:true,usedBy:currentUser.uid});
+  giftMsg.textContent=`🎉 ₹${giftDiscount} discount applied!`;
 };
 
-// --- CHECKOUT ---
+/* CHECKOUT */
 document.getElementById("checkoutBtn").onclick=()=>checkoutPopup.style.display="flex";
-document.getElementById("closeCheckout").onclick=()=>checkoutPopup.style.display="none";
+closeCheckout.onclick=()=>checkoutPopup.style.display="none";
 
-document.getElementById("placeOrder").onclick=async()=>{
+placeOrder.onclick=async()=>{
   const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const pay=Math.max(total-walletBalance,0);
-  const usedWallet=Math.min(total,walletBalance);
-  walletBalance-=usedWallet;
-  await updateDoc(doc(db,"users",currentUser.uid),{balance:walletBalance});
-  await addDoc(collection(db,"orders"),{
-    userId:currentUser.uid,items:cart,total:total,paid:pay,walletUsed:usedWallet,createdAt:serverTimestamp()
-  });
-  alert(`✅ Order placed! Paid ₹${pay} (Used ₹${usedWallet} from wallet)`);
-  cart=[];await saveCart();updateCart();checkoutPopup.style.display="none";walletDisplay.textContent=`💰 Wallet: ₹${walletBalance}`;
+  const finalTotal=Math.max(total-giftDiscount,0);
+  const order={
+    userId:currentUser.uid,userName:currentUser.displayName,
+    items:cart,total:finalTotal,discount:giftDiscount,
+    address:{
+      name:rName.value,street1:rStreet1.value,street2:rStreet2.value,
+      city:rCity.value,state:rState.value,zip:rZip.value,country:rCountry.value,phone:rPhone.value
+    },
+    createdAt:serverTimestamp()
+  };
+  await addDoc(collection(db,"orders"),order);
+  alert(`✅ Order placed! Total paid ₹${finalTotal}`);
+  cart=[];giftDiscount=0;await saveCart();updateCart();
+  checkoutPopup.style.display="none";
+};
+
+/* REVIEWS */
+async function loadReviews(pid){
+  const snap=await getDocs(query(collection(db,"reviews"),where("productId","==",pid)));
+  const rev=document.getElementById("reviews");
+  rev.innerHTML=snap.empty?"<p>No reviews yet.</p>":snap.docs.map(r=>{
+    const d=r.data(),stars="★".repeat(d.rating||0)+"☆".repeat(5-(d.rating||0));
+    return `<div><b>${d.userName}</b> (${stars}): ${d.text}</div>`;
+  }).join("");
+}
+document.getElementById("submitReview").onclick=async()=>{
+  const text=document.getElementById("reviewInput").value.trim();
+  if(!text)return alert("Write something!");
+  await addDoc(collection(db,"reviews"),{productId:currentProduct.id,userId:currentUser.uid,userName:currentUser.displayName,text,rating:parseInt(currentRating),createdAt:serverTimestamp()});
+  document.getElementById("reviewInput").value="";currentRating=0;stars.forEach(s=>s.classList.remove("active"));loadReviews(currentProduct.id);
 };
 </script>
 </body>
