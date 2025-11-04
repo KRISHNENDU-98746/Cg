@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Firestore Store)</title>
+<title>Firestore Store</title>
 <style>
   body {font-family:'Poppins',sans-serif;margin:0;padding:0;background:#f6f7fb;}
   #loginPage{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;top:0;left:0;right:0;bottom:0;background:#f6f7fb;z-index:100;}
@@ -109,11 +109,22 @@
 
 <!-- CART DRAWER -->
 <div id="cartDrawer">
+  <button id="backToHome" style="
+    background:#555;
+    color:white;
+    border:none;
+    padding:6px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    margin-bottom:10px;
+  ">⬅ Back</button>
+
   <h2>Your Cart</h2>
   <div id="cartItems"></div>
   <p class="cart-total">Total: ₹<span id="cartTotal">0</span></p>
   <button class="checkout-btn" id="checkoutBtn">Checkout</button>
 </div>
+
 
 <!-- CHECKOUT POPUP -->
 <div id="checkoutPopup">
@@ -254,19 +265,51 @@ stars.forEach(s=>{
   s.onclick=()=>{currentRating=s.dataset.value;stars.forEach(st=>st.classList.toggle("active",st.dataset.value<=currentRating));};
 });
 
-/* CART */
-async function addToCart(id,name,price,image){
-  const ex=cart.find(i=>i.id===id);
-  if(ex)ex.qty++;else cart.push({id,name,price,image,qty:1});
-  await saveCart();updateCart();
+  /* CART */
+async function addToCart(id, name, price, image) {
+  const ex = cart.find(i => i.id === id);
+  if (ex) ex.qty++;
+  else cart.push({ id, name, price, image, qty: 1 });
+  await saveCart();
+  updateCart();
 }
-function updateCart(){
-  cartItems.innerHTML=cart.map(i=>`<div class="cart-item"><span>${i.name} x${i.qty}</span><span>₹${(i.price*i.qty).toFixed(2)}</span></div>`).join("");
-  cartTotal.textContent=cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
+
+function updateCart() {
+  cartItems.innerHTML = cart.map(i => `
+    <div class="cart-item">
+      <span>${i.name} x${i.qty}</span>
+      <span>₹${(i.price * i.qty).toFixed(2)}</span>
+    </div>
+  `).join("");
+  cartTotal.textContent = cart.reduce((s, i) => s + i.price * i.qty, 0).toFixed(2);
 }
-cartBtn.onclick=()=>cartDrawer.classList.toggle("active");
-async function saveCart(){if(currentUser)await setDoc(doc(db,"carts",currentUser.uid),{items:cart});}
-async function loadCart(){if(!currentUser)return;const snap=await getDoc(doc(db,"carts",currentUser.uid));cart=snap.exists()?snap.data().items:[];updateCart();}
+
+// 🛒 Toggle Cart Drawer (open/close)
+cartBtn.onclick = () => cartDrawer.classList.toggle("active");
+
+// 🏠 Back Button (from Cart to Home)
+const backToHome = document.getElementById("backToHome");
+if (backToHome) {
+  backToHome.onclick = () => {
+    cartDrawer.classList.remove("active");   // Cart Drawer বন্ধ
+    productDetails.style.display = "none";   // যদি Product Details খোলা থাকে
+    productGrid.style.display = "grid";      // আবার Product Grid দেখাবে
+  };
+}
+
+// 💾 Save Cart to Firestore
+async function saveCart() {
+  if (currentUser) await setDoc(doc(db, "carts", currentUser.uid), { items: cart });
+}
+
+// 📦 Load Cart from Firestore
+async function loadCart() {
+  if (!currentUser) return;
+  const snap = await getDoc(doc(db, "carts", currentUser.uid));
+  cart = snap.exists() ? snap.data().items : [];
+  updateCart();
+}
+
 
 /* GIFT REDEEM */
 redeemGift.onclick=async()=>{
