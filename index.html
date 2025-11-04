@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Firestore Store (All-in-One)</title>
+<title>Firestore Store with Ratings ⭐</title>
 <style>
   body {font-family:'Poppins',sans-serif;margin:0;padding:0;background:#f6f7fb;}
   #loginPage{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;}
@@ -27,6 +27,8 @@
   .cart-item{display:flex;align-items:center;justify-content:space-between;margin:10px 0;border-bottom:1px solid #eee;padding-bottom:8px;}
   .cart-total{font-weight:bold;margin-top:20px;}
   .checkout-btn{width:100%;background:#4CAF50;color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;margin-top:10px;}
+  .star{font-size:24px;color:#ccc;cursor:pointer;transition:color .2s;}
+  .star.selected{color:#FFD700;}
 </style>
 </head>
 <body>
@@ -59,11 +61,20 @@
     <h2 id="pName"></h2>
     <p id="pPrice"></p>
     <p id="pDesc"></p>
+    <p><b>Average Rating:</b> <span id="avgRating">—</span> ⭐</p>
     <button id="addToCartDetail" class="add-btn">Add to Cart</button>
 
     <h3>Customer Reviews</h3>
     <div id="reviews"></div>
+
     <h4>Write a Review</h4>
+    <div id="ratingStars">
+      <span class="star" data-value="1">★</span>
+      <span class="star" data-value="2">★</span>
+      <span class="star" data-value="3">★</span>
+      <span class="star" data-value="4">★</span>
+      <span class="star" data-value="5">★</span>
+    </div>
     <textarea id="reviewInput" rows="3" placeholder="Write your review..."></textarea>
     <button id="submitReview">Submit Review</button>
   </div>
@@ -109,8 +120,10 @@ const cartItems=document.getElementById("cartItems");
 const cartTotal=document.getElementById("cartTotal");
 const backBtn=document.getElementById("backBtn");
 const checkoutBtn=document.getElementById("checkoutBtn");
+const stars=document.querySelectorAll(".star");
+const avgRatingEl=document.getElementById("avgRating");
 
-let allProducts=[],cart=[],currentProduct=null,currentUser=null;
+let allProducts=[],cart=[],currentProduct=null,currentUser=null,currentRating=0;
 
 /* LOGIN */
 googleLogin.onclick=()=>signInWithPopup(auth,provider);
@@ -139,6 +152,7 @@ function displayProducts(list){
       <button class="add-btn" onclick="event.stopPropagation();addToCart('${p.id}','${p.name}',${p.price},'${p.image}')">Add to Cart</button>
     </div>`).join('');
 }
+
 window.viewProduct=async(id)=>{
   const docRef=doc(db,"products",id);
   const snap=await getDoc(docRef);
@@ -152,7 +166,16 @@ window.viewProduct=async(id)=>{
   productDetails.style.display="block";
   loadReviews(id);
 };
+
 backBtn.onclick=()=>{productDetails.style.display="none";productGrid.style.display="grid";};
+
+/* STAR RATING */
+stars.forEach(star=>{
+  star.addEventListener("click",()=>{
+    currentRating=parseInt(star.getAttribute("data-value"));
+    stars.forEach(s=>s.classList.toggle("selected", parseInt(s.getAttribute("data-value"))<=currentRating));
+  });
+});
 
 /* CART */
 window.addToCart=(id,name,price,image)=>{
@@ -160,8 +183,10 @@ window.addToCart=(id,name,price,image)=>{
   if(existing)existing.qty++;else cart.push({id,name,price,image,qty:1});
   updateCart();
 };
+
 document.getElementById("addToCartDetail").onclick=()=>{if(currentProduct)addToCart(currentProduct.id,currentProduct.name,currentProduct.price,currentProduct.image);};
 cartBtn.onclick=()=>cartDrawer.classList.toggle("active");
+
 function updateCart(){
   cartItems.innerHTML=cart.map(i=>`
     <div class="cart-item">
@@ -179,19 +204,33 @@ searchBar.oninput=()=>{const k=searchBar.value.toLowerCase();displayProducts(all
 async function loadReviews(pid){
   const snap=await getDocs(query(collection(db,"reviews"),where("productId","==",pid)));
   const revDiv=document.getElementById("reviews");
-  revDiv.innerHTML=snap.empty?"<p>No reviews yet.</p>":snap.docs.map(r=>`<div class='review'><b>${r.data().userName}</b>: ${r.data().text}</div>`).join('');
+  if(snap.empty){revDiv.innerHTML="<p>No reviews yet.</p>";avgRatingEl.innerText="—";return;}
+  
+  let total=0;let count=0;
+  revDiv.innerHTML=snap.docs.map(r=>{
+    const data=r.data();
+    total+=data.rating||0;
+    count++;
+    return `<div class='review'><b>${data.userName}</b> (${data.rating||0}⭐): ${data.text}</div>`;
+  }).join('');
+  avgRatingEl.innerText=(total/count).toFixed(1);
 }
+
 document.getElementById("submitReview").onclick=async()=>{
   const text=document.getElementById("reviewInput").value.trim();
   if(!text)return alert("Write something first!");
+  if(currentRating===0)return alert("Please select a star rating!");
   await addDoc(collection(db,"reviews"),{
     productId:currentProduct.id,
     userId:currentUser.uid,
     userName:currentUser.displayName,
     text,
+    rating:currentRating,
     createdAt:serverTimestamp()
   });
   document.getElementById("reviewInput").value="";
+  currentRating=0;
+  stars.forEach(s=>s.classList.remove("selected"));
   loadReviews(currentProduct.id);
 };
 
@@ -200,7 +239,6 @@ checkoutBtn.onclick=()=>{
   const total=cart.reduce((sum,i)=>sum+i.price*i.qty,0);
   if(total===0)return alert("Your cart is empty!");
   alert(`Redirecting to payment gateway for ₹${total.toFixed(2)}...`);
-  // You can integrate PayU or Razorpay here
 };
 </script>
 </body>
