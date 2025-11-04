@@ -154,7 +154,7 @@ window.viewProduct=async(id)=>{
   const p=snap.data();currentProduct={id,...p};
   document.getElementById("pImg").src=p.image||'https://via.placeholder.com/300';
   document.getElementById("pName").innerText=p.name;
-  document.getElementById("pPrice").innerText=`Price: $${p.price}`;
+  document.getElementById("pPrice").innerText=`Price: $₹{p.price}`;
   document.getElementById("pDesc").innerText=p.description||'';
   productGrid.style.display="none";
   productDetails.style.display="block";
