@@ -13,11 +13,37 @@
   nav button{border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
   #logoutBtn{background:#f44336;color:white;}
   #cartBtn{background:#4CAF50;color:white;}
-  #product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;padding:20px;}
-  .product{background:white;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);padding:10px;text-align:center;transition:transform .2s;}
+
+  /* ✅ 4 Products per Row (Responsive Grid) */
+  #product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 20px;
+  }
+  @media (max-width: 1024px) {
+    #product-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    #product-grid { grid-template-columns: repeat(1, 1fr); }
+  }
+
+  .product {
+    background:white;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    padding:10px;
+    text-align:center;
+    transition:transform .2s;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    height:100%;
+  }
   .product:hover{transform:translateY(-3px);}
   .product img{width:100%;height:180px;object-fit:cover;border-radius:8px;}
   .add-btn{background:#4CAF50;color:white;border:none;padding:6px 12px;border-radius:8px;margin-top:6px;cursor:pointer;}
+  
   #productDetails{display:none;max-width:800px;margin:20px auto;background:white;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
   #productDetails img{width:100%;border-radius:8px;height:350px;object-fit:cover;}
   #backBtn{margin-top:10px;background:#555;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;}
@@ -119,6 +145,7 @@
 </div>
 
 <script type="module">
+// ✅ Same JavaScript — no changes needed for 4-per-line layout
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
@@ -156,7 +183,6 @@ const closeCheckout=document.getElementById("closeCheckout");
 
 let allProducts=[],cart=[],currentProduct=null,currentUser=null,currentRating=0;
 
-/* LOGIN */
 googleLogin.onclick=()=>signInWithPopup(auth,provider);
 logoutBtn.onclick=()=>signOut(auth);
 onAuthStateChanged(auth,async user=>{
@@ -173,14 +199,12 @@ onAuthStateChanged(auth,async user=>{
   }
 });
 
-/* LOAD PRODUCTS */
 async function loadProducts(){
   const snap=await getDocs(collection(db,"products"));
   allProducts=snap.docs.map(d=>({id:d.id,...d.data()}));
   displayProducts(allProducts);
 }
 
-/* DISPLAY PRODUCTS */
 function displayProducts(list){
   productGrid.style.display="grid";
   productDetails.style.display="none";
@@ -192,13 +216,9 @@ function displayProducts(list){
     </div>`).join('');
 }
 
-/* FIXED SEARCH BAR */
 searchBar.addEventListener("input", () => {
   const keyword = searchBar.value.trim().toLowerCase();
-  if (!keyword) {
-    displayProducts(allProducts);
-    return;
-  }
+  if (!keyword) return displayProducts(allProducts);
   const filtered = allProducts.filter(p =>
     (p.name && p.name.toLowerCase().includes(keyword)) ||
     (p.description && p.description.toLowerCase().includes(keyword))
@@ -222,7 +242,6 @@ window.viewProduct=async(id)=>{
 
 backBtn.onclick=()=>{productDetails.style.display="none";productGrid.style.display="grid";};
 
-/* STAR RATING */
 stars.forEach(s=>{
   s.onclick=()=>{
     currentRating=s.dataset.value;
@@ -230,7 +249,6 @@ stars.forEach(s=>{
   };
 });
 
-/* CART */
 window.addToCart=async(id,name,price,image)=>{
   const existing=cart.find(i=>i.id===id);
   if(existing)existing.qty++;else cart.push({id,name,price,image,qty:1});
@@ -249,7 +267,6 @@ function updateCart(){
   cartTotal.innerText=total.toFixed(2);
 }
 
-/* SAVE + LOAD CART (Persistent) */
 async function saveCart(){
   if(!currentUser)return;
   await setDoc(doc(db,"carts",currentUser.uid),{items:cart});
@@ -261,7 +278,6 @@ async function loadCart(){
   updateCart();
 }
 
-/* CHECKOUT */
 document.getElementById("checkoutBtn").onclick=()=>checkoutPopup.style.display="flex";
 closeCheckout.onclick=()=>checkoutPopup.style.display="none";
 
@@ -283,7 +299,335 @@ placeOrder.onclick=async()=>{
   checkoutPopup.style.display="none";
 };
 
-/* REVIEWS */
+async function loadReviews(pid){
+  const snap=await getDocs(query(collection(db,"reviews"),where("productId","==",pid)));
+  const revDiv=document.getElementById("reviews");
+  revDiv.innerHTML=snap.empty?"<p>No reviews yet.</p>":snap.docs.map(r=>{
+    const d=r.data();
+    const stars="★".repeat(d.rating||0)+"☆".repeat(5-(d.rating||0));
+    return `<div class='review'><b>${d.userName}</b> (${stars}): ${d.text}</div>`;
+  }).join('');
+}
+
+document.getElementById("submitReview").onclick=async()=>{
+  const text=document.getElementById("reviewInput").value.trim();
+  if(!text)return alert("Write something first!");
+  await addDoc(collection(db,"reviews"),{
+    productId:currentProduct.id,
+    userId:currentUser.uid,
+    userName:currentUser.displayName,
+    text,
+    rating:parseInt(currentRating),
+    createdAt:serverTimestamp()
+  });
+  document.getElementById("reviewInput").value="";
+  currentRating=0;stars.forEach(s=>s.classList.remove("active"));
+  loadReviews(currentProduct.id);
+};
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Firestore Store (Persistent Cart + Checkout)</title>
+<style>
+  body {font-family:'Poppins',sans-serif;margin:0;padding:0;background:#f6f7fb;}
+  #loginPage{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .google-btn{background:#4285F4;color:white;padding:10px 18px;border:none;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;gap:10px;}
+  .google-btn:hover{background:#357ae8;}
+  nav{background:#222;color:white;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;}
+  nav input{padding:6px 10px;border-radius:8px;border:none;outline:none;}
+  nav button{border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
+  #logoutBtn{background:#f44336;color:white;}
+  #cartBtn{background:#4CAF50;color:white;}
+
+  /* ✅ 4 Products per Row (Responsive Grid) */
+  #product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 20px;
+  }
+  @media (max-width: 1024px) {
+    #product-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    #product-grid { grid-template-columns: repeat(1, 1fr); }
+  }
+
+  .product {
+    background:white;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    padding:10px;
+    text-align:center;
+    transition:transform .2s;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    height:100%;
+  }
+  .product:hover{transform:translateY(-3px);}
+  .product img{width:100%;height:180px;object-fit:cover;border-radius:8px;}
+  .add-btn{background:#4CAF50;color:white;border:none;padding:6px 12px;border-radius:8px;margin-top:6px;cursor:pointer;}
+  
+  #productDetails{display:none;max-width:800px;margin:20px auto;background:white;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+  #productDetails img{width:100%;border-radius:8px;height:350px;object-fit:cover;}
+  #backBtn{margin-top:10px;background:#555;color:white;border:none;padding:6px 12px;border-radius:8px;cursor:pointer;}
+  textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;resize:none;}
+  #cartDrawer{position:fixed;top:0;right:-400px;width:350px;height:100%;background:white;box-shadow:-2px 0 8px rgba(0,0,0,0.2);transition:right .3s;padding:20px;overflow-y:auto;z-index:10;}
+  #cartDrawer.active{right:0;}
+  .cart-item{display:flex;align-items:center;justify-content:space-between;margin:10px 0;border-bottom:1px solid #eee;padding-bottom:8px;}
+  .cart-total{font-weight:bold;margin-top:20px;}
+  .checkout-btn{width:100%;background:#4CAF50;color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;margin-top:10px;}
+  .stars {display:flex;gap:5px;margin:10px 0;}
+  .star {font-size:24px;color:#ccc;cursor:pointer;}
+  .star.active {color:#FFD700;}
+
+  /* CHECKOUT POPUP */
+  #checkoutPopup {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 20;
+  }
+  .checkout-box {
+    background: white; padding: 20px; border-radius: 10px; width: 400px; max-height: 90vh; overflow-y: auto;
+  }
+  .checkout-box h2 {margin-top:0;}
+  .checkout-box input {width: 100%; padding: 8px; margin: 6px 0; border-radius: 6px; border: 1px solid #ccc;}
+  .checkout-box button {width:100%;margin-top:10px;padding:10px;border:none;border-radius:8px;cursor:pointer;}
+  #closeCheckout {background:#f44336;color:white;}
+  #placeOrder {background:#4CAF50;color:white;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage">
+  <h1>Welcome to Firestore Store 🛍️</h1>
+  <button id="googleLogin" class="google-btn">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Sign in with Google
+  </button>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+  <nav>
+    <div>Firestore Store</div>
+    <input type="text" id="searchBar" placeholder="Search products...">
+    <div>
+      <button id="cartBtn">🛒 Cart</button>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </nav>
+
+  <div id="product-grid"></div>
+
+  <!-- PRODUCT DETAILS -->
+  <div id="productDetails">
+    <button id="backBtn">⬅ Back</button>
+    <img id="pImg">
+    <h2 id="pName"></h2>
+    <p id="pPrice"></p>
+    <p id="pDesc"></p>
+    <button id="addToCartDetail" class="add-btn">Add to Cart</button>
+
+    <h3>Customer Reviews</h3>
+    <div id="reviews"></div>
+    <h4>Write a Review</h4>
+    <div class="stars" id="ratingStars">
+      <span class="star" data-value="1">★</span>
+      <span class="star" data-value="2">★</span>
+      <span class="star" data-value="3">★</span>
+      <span class="star" data-value="4">★</span>
+      <span class="star" data-value="5">★</span>
+    </div>
+    <textarea id="reviewInput" rows="3" placeholder="Write your review..."></textarea>
+    <button id="submitReview">Submit Review</button>
+  </div>
+</div>
+
+<!-- CART DRAWER -->
+<div id="cartDrawer">
+  <h2>Your Cart</h2>
+  <div id="cartItems"></div>
+  <p class="cart-total">Total: ₹<span id="cartTotal">0</span></p>
+  <button class="checkout-btn" id="checkoutBtn">Checkout</button>
+</div>
+
+<!-- CHECKOUT POPUP -->
+<div id="checkoutPopup">
+  <div class="checkout-box">
+    <h2>Shipping Address</h2>
+    <input id="rName" placeholder="Recipient Name">
+    <input id="rStreet1" placeholder="Street Address 1">
+    <input id="rStreet2" placeholder="Street Address 2 (Optional)">
+    <input id="rCity" placeholder="City">
+    <input id="rState" placeholder="State/Province">
+    <input id="rZip" placeholder="Zip/Postal Code">
+    <input id="rCountry" placeholder="Country">
+    <input id="rPhone" placeholder="Phone Number">
+    <button id="placeOrder">Place Order</button>
+    <button id="closeCheckout">Cancel</button>
+  </div>
+</div>
+
+<script type="module">
+// ✅ Same JavaScript — no changes needed for 4-per-line layout
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, getDoc, setDoc, addDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyD7CGdjI-VaNl2AnB54dPAVBh9mAIF9j7o",
+  authDomain:"thelong-6274a.firebaseapp.com",
+  projectId:"thelong-6274a",
+  storageBucket:"thelong-6274a.firebasestorage.app",
+  messagingSenderId:"729094241594",
+  appId:"1:729094241594:web:17b32ea302bb45814fa403"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const loginPage=document.getElementById("loginPage");
+const mainApp=document.getElementById("app");
+const googleLogin=document.getElementById("googleLogin");
+const logoutBtn=document.getElementById("logoutBtn");
+const productGrid=document.getElementById("product-grid");
+const searchBar=document.getElementById("searchBar");
+const productDetails=document.getElementById("productDetails");
+const cartBtn=document.getElementById("cartBtn");
+const cartDrawer=document.getElementById("cartDrawer");
+const cartItems=document.getElementById("cartItems");
+const cartTotal=document.getElementById("cartTotal");
+const backBtn=document.getElementById("backBtn");
+const stars=document.querySelectorAll(".star");
+const checkoutPopup=document.getElementById("checkoutPopup");
+const placeOrder=document.getElementById("placeOrder");
+const closeCheckout=document.getElementById("closeCheckout");
+
+let allProducts=[],cart=[],currentProduct=null,currentUser=null,currentRating=0;
+
+googleLogin.onclick=()=>signInWithPopup(auth,provider);
+logoutBtn.onclick=()=>signOut(auth);
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    currentUser=user;
+    loginPage.style.display="none";
+    mainApp.style.display="block";
+    await loadProducts();
+    await loadCart();
+  }else{
+    currentUser=null;
+    loginPage.style.display="flex";
+    mainApp.style.display="none";
+  }
+});
+
+async function loadProducts(){
+  const snap=await getDocs(collection(db,"products"));
+  allProducts=snap.docs.map(d=>({id:d.id,...d.data()}));
+  displayProducts(allProducts);
+}
+
+function displayProducts(list){
+  productGrid.style.display="grid";
+  productDetails.style.display="none";
+  productGrid.innerHTML=list.map(p=>`
+    <div class="product" onclick="viewProduct('${p.id}')">
+      <img src="${p.image||'https://via.placeholder.com/200'}">
+      <h3>${p.name}</h3><p>₹${p.price}</p>
+      <button class="add-btn" onclick="event.stopPropagation();addToCart('${p.id}','${p.name}',${p.price},'${p.image}')">Add to Cart</button>
+    </div>`).join('');
+}
+
+searchBar.addEventListener("input", () => {
+  const keyword = searchBar.value.trim().toLowerCase();
+  if (!keyword) return displayProducts(allProducts);
+  const filtered = allProducts.filter(p =>
+    (p.name && p.name.toLowerCase().includes(keyword)) ||
+    (p.description && p.description.toLowerCase().includes(keyword))
+  );
+  displayProducts(filtered);
+});
+
+window.viewProduct=async(id)=>{
+  const docRef=doc(db,"products",id);
+  const snap=await getDoc(docRef);
+  if(!snap.exists())return;
+  const p=snap.data();currentProduct={id,...p};
+  document.getElementById("pImg").src=p.image||'https://via.placeholder.com/300';
+  document.getElementById("pName").innerText=p.name;
+  document.getElementById("pPrice").innerText=`Price: ₹${p.price}`;
+  document.getElementById("pDesc").innerText=p.description||'';
+  productGrid.style.display="none";
+  productDetails.style.display="block";
+  loadReviews(id);
+};
+
+backBtn.onclick=()=>{productDetails.style.display="none";productGrid.style.display="grid";};
+
+stars.forEach(s=>{
+  s.onclick=()=>{
+    currentRating=s.dataset.value;
+    stars.forEach(st=>st.classList.toggle("active",st.dataset.value<=currentRating));
+  };
+});
+
+window.addToCart=async(id,name,price,image)=>{
+  const existing=cart.find(i=>i.id===id);
+  if(existing)existing.qty++;else cart.push({id,name,price,image,qty:1});
+  await saveCart();
+  updateCart();
+};
+document.getElementById("addToCartDetail").onclick=()=>{if(currentProduct)addToCart(currentProduct.id,currentProduct.name,currentProduct.price,currentProduct.image);};
+cartBtn.onclick=()=>cartDrawer.classList.toggle("active");
+function updateCart(){
+  cartItems.innerHTML=cart.map(i=>`
+    <div class="cart-item">
+      <span>${i.name} x${i.qty}</span>
+      <span>₹${(i.price*i.qty).toFixed(2)}</span>
+    </div>`).join('');
+  const total=cart.reduce((sum,i)=>sum+i.price*i.qty,0);
+  cartTotal.innerText=total.toFixed(2);
+}
+
+async function saveCart(){
+  if(!currentUser)return;
+  await setDoc(doc(db,"carts",currentUser.uid),{items:cart});
+}
+async function loadCart(){
+  if(!currentUser)return;
+  const snap=await getDoc(doc(db,"carts",currentUser.uid));
+  cart=snap.exists()?snap.data().items:[];
+  updateCart();
+}
+
+document.getElementById("checkoutBtn").onclick=()=>checkoutPopup.style.display="flex";
+closeCheckout.onclick=()=>checkoutPopup.style.display="none";
+
+placeOrder.onclick=async()=>{
+  const order={
+    userId:currentUser.uid,
+    userName:currentUser.displayName,
+    address:{
+      name:rName.value,street1:rStreet1.value,street2:rStreet2.value,
+      city:rCity.value,state:rState.value,zip:rZip.value,country:rCountry.value,phone:rPhone.value
+    },
+    items:cart,
+    total:cart.reduce((s,i)=>s+i.price*i.qty,0),
+    createdAt:serverTimestamp()
+  };
+  await addDoc(collection(db,"orders"),order);
+  alert("✅ Order placed successfully!");
+  cart=[];await saveCart();updateCart();
+  checkoutPopup.style.display="none";
+};
+
 async function loadReviews(pid){
   const snap=await getDocs(query(collection(db,"reviews"),where("productId","==",pid)));
   const revDiv=document.getElementById("reviews");
