@@ -197,7 +197,7 @@ onAuthStateChanged(auth, async (user) => {
     await loadProducts();
     await loadCart();
     await loadWallet();
-<script>
+<script type="module">
   // 🪙 Wallet Display Setup
 const walletDisplay = document.createElement("div");
 walletDisplay.style.marginRight = "15px";
@@ -214,7 +214,7 @@ async function loadWallet() {
   else await setDoc(ref, { balance: 0 });
   walletDisplay.textContent = `💰 Wallet: ₹${balance}`;
 }
-<script>
+<script type="module">
   } else {
     currentUser = null;
     mainApp.style.display = "none";
