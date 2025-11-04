@@ -83,7 +83,7 @@
 <div id="cartDrawer">
   <h2>Your Cart</h2>
   <div id="cartItems"></div>
-  <p class="cart-total">Total: $<span id="cartTotal">0</span></p>
+  <p class="cart-total">Total: ₹<span id="cartTotal">0</span></p>
   <button class="checkout-btn">Checkout</button>
 </div>
 
@@ -141,10 +141,10 @@ function displayProducts(list){
   productGrid.style.display="grid";
   productDetails.style.display="none";
   productGrid.innerHTML=list.map(p=>`
-    <div class="product" onclick="viewProduct('${p.id}')">
+    <div class="product" onclick="viewProduct('₹{p.id}')">
       <img src="${p.image||'https://via.placeholder.com/200'}">
-      <h3>${p.name}</h3><p>$${p.price}</p>
-      <button class="add-btn" onclick="event.stopPropagation();addToCart('${p.id}','${p.name}',${p.price},'${p.image}')">Add to Cart</button>
+      <h3>${p.name}</h3><p>$₹{p.price}</p>
+      <button class="add-btn" onclick="event.stopPropagation();addToCart('₹{p.id}','₹{p.name}',₹{p.price},'₹{p.image}')">Add to Cart</button>
     </div>`).join('');
 }
 window.viewProduct=async(id)=>{
