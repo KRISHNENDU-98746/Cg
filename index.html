@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Firestore Store (Persistent Cart + Gift Card + Checkout)</title>
+<title>Firestore Store (Gift Card + Persistent Cart + Checkout)</title>
 <style>
   body {font-family:'Poppins',sans-serif;margin:0;padding:0;background:#f6f7fb;}
   #loginPage{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;top:0;left:0;right:0;bottom:0;background:#f6f7fb;z-index:100;}
@@ -13,8 +13,8 @@
   nav button{border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
   #logoutBtn{background:#f44336;color:white;}
   #cartBtn{background:#4CAF50;color:white;}
-  #product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:20px;}
-  .product{background:white;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);padding:10px;text-align:center;transition:transform .2s;}
+  #product-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;padding:20px;}
+  .product{background:white;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.1);padding:10px;text-align:center;transition:transform .2s;cursor:pointer;}
   .product:hover{transform:translateY(-3px);}
   .product img{width:100%;height:180px;object-fit:cover;border-radius:8px;}
   .add-btn{background:#4CAF50;color:white;border:none;padding:6px 12px;border-radius:8px;margin-top:6px;cursor:pointer;}
@@ -38,7 +38,7 @@
   #closeCheckout {background:#f44336;color:white;}
   #placeOrder {background:#4CAF50;color:white;}
   #giftCardBox{margin-top:15px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fafafa;}
-  #giftCardBox input{width:calc(100% - 120px);display:inline-block;}
+  #giftCardBox input{width:calc(100% - 110px);display:inline-block;}
   #redeemGift{background:#2196F3;color:white;width:100px;margin-left:5px;}
 </style>
 </head>
@@ -157,6 +157,9 @@ const stars=document.querySelectorAll(".star");
 const checkoutPopup=document.getElementById("checkoutPopup");
 const placeOrder=document.getElementById("placeOrder");
 const closeCheckout=document.getElementById("closeCheckout");
+const redeemGift=document.getElementById("redeemGift");
+const giftCode=document.getElementById("giftCode");
+const giftMsg=document.getElementById("giftMsg");
 
 let allProducts=[],cart=[],currentProduct=null,currentUser=null,currentRating=0;
 let giftDiscount=0;
@@ -165,7 +168,6 @@ let giftDiscount=0;
 googleLogin.onclick=()=>signInWithPopup(auth,provider);
 logoutBtn.onclick=()=>signOut(auth);
 
-/* AUTH STATE */
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
@@ -177,7 +179,6 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = null;
     mainApp.style.display = "none";
     loginPage.style.display = "flex";
-    productGrid.innerHTML = "";
   }
 });
 
@@ -189,68 +190,74 @@ async function loadProducts(){
 }
 
 function displayProducts(list){
-  productGrid.style.display="grid";
-  productDetails.style.display="none";
-  productGrid.innerHTML=list.map(p=>`
-    <div class="product" onclick="viewProduct('${p.id}')">
-      <img src="${p.image||'https://via.placeholder.com/200'}">
-      <h3>${p.name}</h3><p>₹${p.price}</p>
-      <button class="add-btn" onclick="event.stopPropagation();addToCart('${p.id}','${p.name}',${p.price},'${p.image}')">Add to Cart</button>
-    </div>`).join('');
+  productGrid.innerHTML="";
+  list.forEach(p=>{
+    const div=document.createElement("div");
+    div.className="product";
+    div.innerHTML=`<img src="${p.image||'https://via.placeholder.com/200'}">
+                   <h3>${p.name}</h3><p>₹${p.price}</p>
+                   <button class="add-btn">Add to Cart</button>`;
+    div.querySelector(".add-btn").addEventListener("click",e=>{
+      e.stopPropagation();addToCart(p.id,p.name,p.price,p.image);
+    });
+    div.addEventListener("click",()=>viewProduct(p.id));
+    productGrid.appendChild(div);
+  });
 }
 
-/* SEARCH BAR */
-searchBar.addEventListener("input", () => {
-  const keyword = searchBar.value.trim().toLowerCase();
-  if (!keyword) {displayProducts(allProducts);return;}
-  const filtered = allProducts.filter(p =>
-    (p.name && p.name.toLowerCase().includes(keyword)) ||
-    (p.description && p.description.toLowerCase().includes(keyword))
+/* SEARCH */
+searchBar.addEventListener("input",()=>{
+  const key=searchBar.value.trim().toLowerCase();
+  const filtered=allProducts.filter(p=>
+    p.name.toLowerCase().includes(key) ||
+    (p.description||"").toLowerCase().includes(key)
   );
   displayProducts(filtered);
 });
 
+/* PRODUCT DETAILS */
+async function viewProduct(id){
+  const ref=doc(db,"products",id);
+  const snap=await getDoc(ref);
+  if(!snap.exists())return;
+  const p=snap.data();currentProduct={id,...p};
+  document.getElementById("pImg").src=p.image||"https://via.placeholder.com/200";
+  document.getElementById("pName").textContent=p.name;
+  document.getElementById("pPrice").textContent=`Price: ₹${p.price}`;
+  document.getElementById("pDesc").textContent=p.description||"";
+  productGrid.style.display="none";
+  productDetails.style.display="block";
+  loadReviews(id);
+}
+backBtn.onclick=()=>{productDetails.style.display="none";productGrid.style.display="grid";};
+
+/* STAR RATING */
+stars.forEach(s=>{
+  s.onclick=()=>{currentRating=s.dataset.value;stars.forEach(st=>st.classList.toggle("active",st.dataset.value<=currentRating));};
+});
+
 /* CART */
-window.addToCart=async(id,name,price,image)=>{
-  const existing=cart.find(i=>i.id===id);
-  if(existing)existing.qty++;else cart.push({id,name,price,image,qty:1});
+async function addToCart(id,name,price,image){
+  const ex=cart.find(i=>i.id===id);
+  if(ex)ex.qty++;else cart.push({id,name,price,image,qty:1});
   await saveCart();updateCart();
-};
-document.getElementById("addToCartDetail").onclick=()=>{if(currentProduct)addToCart(currentProduct.id,currentProduct.name,currentProduct.price,currentProduct.image);};
-cartBtn.onclick=()=>cartDrawer.classList.toggle("active");
-
+}
 function updateCart(){
-  cartItems.innerHTML=cart.map(i=>`
-    <div class="cart-item">
-      <span>${i.name} x${i.qty}</span>
-      <span>₹${(i.price*i.qty).toFixed(2)}</span>
-    </div>`).join('');
-  const total=cart.reduce((sum,i)=>sum+i.price*i.qty,0);
-  cartTotal.innerText=total.toFixed(2);
+  cartItems.innerHTML=cart.map(i=>`<div class="cart-item"><span>${i.name} x${i.qty}</span><span>₹${(i.price*i.qty).toFixed(2)}</span></div>`).join("");
+  cartTotal.textContent=cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
 }
+cartBtn.onclick=()=>cartDrawer.classList.toggle("active");
+async function saveCart(){if(currentUser)await setDoc(doc(db,"carts",currentUser.uid),{items:cart});}
+async function loadCart(){if(!currentUser)return;const snap=await getDoc(doc(db,"carts",currentUser.uid));cart=snap.exists()?snap.data().items:[];updateCart();}
 
-async function saveCart(){
-  if(!currentUser)return;
-  await setDoc(doc(db,"carts",currentUser.uid),{items:cart});
-}
-async function loadCart(){
-  if(!currentUser)return;
-  const snap=await getDoc(doc(db,"carts",currentUser.uid));
-  cart=snap.exists()?snap.data().items:[];updateCart();
-}
-
-/* GIFT CARD REDEEM */
-const redeemGift=document.getElementById("redeemGift");
-const giftCode=document.getElementById("giftCode");
-const giftMsg=document.getElementById("giftMsg");
-
+/* GIFT REDEEM */
 redeemGift.onclick=async()=>{
   const code=giftCode.value.trim();
-  if(!code)return alert("Enter a gift card code!");
+  if(!code)return alert("Enter gift card code!");
   const snap=await getDoc(doc(db,"giftcards",code));
   if(!snap.exists())return giftMsg.textContent="❌ Invalid code!";
   const data=snap.data();
-  if(data.redeemed) return giftMsg.textContent="⚠️ Already used!";
+  if(data.redeemed)return giftMsg.textContent="⚠️ Already used!";
   giftDiscount=data.amount||0;
   await updateDoc(doc(db,"giftcards",code),{redeemed:true,usedBy:currentUser.uid});
   giftMsg.textContent=`🎉 ₹${giftDiscount} discount applied!`;
@@ -265,17 +272,33 @@ placeOrder.onclick=async()=>{
   const finalTotal=Math.max(total-giftDiscount,0);
   const order={
     userId:currentUser.uid,userName:currentUser.displayName,
+    items:cart,total:finalTotal,discount:giftDiscount,
     address:{
       name:rName.value,street1:rStreet1.value,street2:rStreet2.value,
       city:rCity.value,state:rState.value,zip:rZip.value,country:rCountry.value,phone:rPhone.value
     },
-    items:cart,total:finalTotal,discount:giftDiscount,
     createdAt:serverTimestamp()
   };
   await addDoc(collection(db,"orders"),order);
-  alert(`✅ Order placed! Total paid: ₹${finalTotal}`);
+  alert(`✅ Order placed! Total paid ₹${finalTotal}`);
   cart=[];giftDiscount=0;await saveCart();updateCart();
   checkoutPopup.style.display="none";
+};
+
+/* REVIEWS */
+async function loadReviews(pid){
+  const snap=await getDocs(query(collection(db,"reviews"),where("productId","==",pid)));
+  const rev=document.getElementById("reviews");
+  rev.innerHTML=snap.empty?"<p>No reviews yet.</p>":snap.docs.map(r=>{
+    const d=r.data(),stars="★".repeat(d.rating||0)+"☆".repeat(5-(d.rating||0));
+    return `<div><b>${d.userName}</b> (${stars}): ${d.text}</div>`;
+  }).join("");
+}
+document.getElementById("submitReview").onclick=async()=>{
+  const text=document.getElementById("reviewInput").value.trim();
+  if(!text)return alert("Write something!");
+  await addDoc(collection(db,"reviews"),{productId:currentProduct.id,userId:currentUser.uid,userName:currentUser.displayName,text,rating:parseInt(currentRating),createdAt:serverTimestamp()});
+  document.getElementById("reviewInput").value="";currentRating=0;stars.forEach(s=>s.classList.remove("active"));loadReviews(currentProduct.id);
 };
 </script>
 </body>
